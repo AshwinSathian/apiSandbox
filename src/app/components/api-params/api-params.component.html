@@ -1,0 +1,222 @@
+<mat-card class="example-card">
+    <!-- <mat-card-header>
+        <mat-card-title>Shiba Inu</mat-card-title>
+        <mat-card-subtitle>Dog Breed</mat-card-subtitle>
+    </mat-card-header> -->
+    <mat-card-content>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3">
+                    <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>Request Method</mat-label>
+                        <mat-select [(value)]="selectedRequestMethod">
+                            <mat-option *ngFor="let method of requestMethods" [value]="method">
+                                {{ method }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
+                <div class="col-md-9">
+                    <mat-form-field appearance="outline" class="w-100">
+                        <mat-label>API Endpoint</mat-label>
+                        <input type="url" #end matInput placeholder="Enter URL here..." #end="ngModel" [(ngModel)]="endpoint">
+                        <mat-error *ngIf="endpointError !== ''">{{ endpointError }}</mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+            
+            <section class="requestBody">
+                <mat-tab-group>
+                    <mat-tab label="Headers">
+                        <div class="container-fluid" style="padding: 1rem;">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <strong>Key</strong>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Value</strong>
+                                </div>
+                                <div class="col-md-1"></div>
+                            </div>
+                        </div>
+                        <div *ngFor="let item of requestHeaders; let index=index" class="container-fluid">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <mat-form-field class="w-100">
+                                        <input 
+                                            matInput 
+                                            [disabled]="item.key === 'Content-Type'"
+                                            class="requestBodyItem" 
+                                            [(ngModel)]="item.key"
+                                        >
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-6">
+                                    <mat-form-field class="w-100">
+                                        <input 
+                                            matInput 
+                                            [disabled]="item.key === 'Content-Type'"
+                                            class="requestBodyItem" 
+                                            [(ngModel)]="item.value"
+                                        >
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-1">
+                                    <button 
+                                        mat-button 
+                                        [disabled]="item.key === 'Content-Type'"
+                                        color="warn" 
+                                        class="d-block mx-auto" 
+                                        style="outline: none;"
+                                        (click)="removeItem(index, 'Headers')"
+                                    >
+                                        <i class="material-icons">highlight_off</i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            mat-flat-button 
+                            color="accent" 
+                            [disabled]="isAddDisabled('Headers')"
+                            style="outline: none;"
+                            (click)="addItem('Headers')"
+                        >
+                            <span>ADD ITEM</span>
+                        </button>
+                    </mat-tab>
+                    <mat-tab 
+                        *ngIf="selectedRequestMethod === 'POST'" 
+                        label="Body"
+                    >
+                        <div class="container-fluid" style="padding: 1rem;">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <strong>Key</strong>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Value</strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <strong>Data Type</strong>
+                                </div>
+                                <div class="col-md-1"></div>
+                            </div>
+                        </div>
+                        <div *ngFor="let item of requestBody; let index=index" class="container-fluid">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <mat-form-field class="w-100">
+                                        <input 
+                                            matInput 
+                                            class="requestBodyItem" 
+                                            [(ngModel)]="item.key"
+                                        >
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-4">
+                                    <mat-form-field 
+                                        *ngIf="requestBodyDataTypes[index] !== 'Boolean'" 
+                                        class="w-100"
+                                    >
+                                        <input 
+                                            [type]="requestBodyDataTypes[index].toLowerCase()"
+                                            matInput 
+                                            [disabled]="requestBodyDataTypes[index] === ''"
+                                            class="requestBodyItem" 
+                                            [(ngModel)]="item.value"
+                                            #value="ngModel"
+                                        >
+                                    </mat-form-field>
+                                    <mat-form-field 
+                                        appearance="legacy"
+                                        *ngIf="requestBodyDataTypes[index] === 'Boolean'" 
+                                        class="w-100"
+                                    >
+                                        <mat-label>Value</mat-label>
+                                        <mat-select 
+                                            [disabled]="requestBodyDataTypes[index] === ''"
+                                            [(value)]="item.value"
+                                        >
+                                            <mat-option value="true">True</mat-option>
+                                            <mat-option value="false">False</mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-3">
+                                    <mat-form-field 
+                                        appearance="legacy" 
+                                        class="w-100"
+                                    >
+                                        <mat-label>Data Type</mat-label>
+                                        <mat-select 
+                                            [(value)]="requestBodyDataTypes[index]"
+                                        >
+                                            <mat-option 
+                                                *ngFor="let type of availableDataTypes" 
+                                                [value]="type"
+                                            >
+                                                {{ type }}
+                                            </mat-option>
+                                        </mat-select>
+                                    </mat-form-field>
+                                </div>
+                                <div class="col-md-1">
+                                    <button 
+                                        mat-button 
+                                        color="warn" 
+                                        class="d-block mx-auto" 
+                                        style="outline: none;"
+                                        (click)="removeItem(index, 'Body')"
+                                    >
+                                        <i class="material-icons">highlight_off</i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            mat-flat-button 
+                            color="accent" 
+                            [disabled]="isAddDisabled('Body')"
+                            style="outline: none;"
+                            (click)="addItem('Body')"
+                        >
+                            <span>ADD ITEM</span>
+                        </button>
+                    </mat-tab>
+                </mat-tab-group>
+            </section>
+            
+            <button 
+                mat-flat-button 
+                [disabled]="!endpoint"
+                color="primary" 
+                (click)="sendRequest()"
+            >
+                SEND REQUEST
+            </button>
+            <br>
+            <br>
+            <div class="w-100" style="background-color: black; padding: 1rem; min-height: 5rem;">
+                <mat-progress-spinner 
+                    *ngIf="loadingState" 
+                    class="d-block mx-auto" 
+                    color="accent" 
+                    mode="indeterminate"
+                ></mat-progress-spinner>
+                <pre 
+                    *ngIf="responseData" 
+                    style="color: green; white-space: pre-wrap;"
+                >{{ responseData }}</pre>
+                <pre 
+                    *ngIf="responseError" 
+                    style="color: red; white-space: pre-wrap;"
+                >{{ responseError }}</pre>
+            </div>
+        </div>
+    </mat-card-content>
+    <mat-card-actions>
+        
+        <!-- <button mat-button>SHARE</button> -->
+    </mat-card-actions>
+</mat-card>

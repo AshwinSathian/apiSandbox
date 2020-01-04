@@ -1,0 +1,30 @@
+<mat-card class="w-100">
+    <mat-card-header>
+        <mat-card-title>Past Requests</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+        <div 
+            *ngFor="let request of pastRequests" 
+            class="container-fluid" 
+            (click)="load(request)"
+            matTooltip="Click to load this Request"
+            [ngClass]="{ 'get': request.method === 'GET',
+            'post': request.method === 'POST' }"
+        >
+            <div class="row">
+                <div class="col-md-3" [ngClass]="{ 
+                    'getRequest': request.method === 'GET',
+                    'postRequest': request.method === 'POST'
+                }">
+                    {{ request.method }}
+                </div>
+                <div
+                    class="col-md-9 endpoint"
+                >
+                    {{ request.endpoint }}
+                </div
+                >
+            </div>
+        </div>
+    </mat-card-content>
+</mat-card>

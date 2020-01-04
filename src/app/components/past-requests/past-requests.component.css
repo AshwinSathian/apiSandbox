@@ -1,0 +1,39 @@
+.get {
+    border: 1px solid blue;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    opacity: 0.9;
+}
+
+.post {
+    border: 1px solid green;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    opacity: 0.9;
+}
+
+.get:hover, .post:hover {
+    opacity: 1;
+}
+
+.getRequest {
+    background-color: blue;
+    text-align: center;
+    font-family: monospace;
+    font-weight: bold;
+    padding: 0.5rem;
+}
+
+.postRequest {
+    background-color: green;
+    text-align: center;
+    font-family: monospace;
+    font-weight: bold;
+    padding: 0.5rem;
+}
+
+.endpoint {
+    overflow: hidden;
+    font-family: monospace;
+    word-wrap: break-word;
+}
