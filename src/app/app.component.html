@@ -10,7 +10,7 @@
       <app-api-params 
         [openIDBrequest]="openIDBrequest" 
         [indexedDB]="indexedDB"
-        (newRequest)="fetchPastRequests($event)"
+        (newRequest)="fetchPastRequests()"
       ></app-api-params>
     </div>
     <div *ngIf="hasIndexedDB" class="col-md-3">
