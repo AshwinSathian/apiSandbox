@@ -1,5 +1,5 @@
 # API Sandbox
-## A REST API interrogation developed is Angular.
+## A REST API interrogation developed in Angular.
 
 ### Supported Request Methods
 
