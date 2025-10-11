@@ -1,66 +1,160 @@
-<p-card header="Request History" class="w-full">
-  <div class="space-y-3">
+<section
+  class="h-full w-full"
+  [ngClass]="{ 'border-none bg-transparent shadow-none': !displayHeader }"
+>
+  @if (displayHeader) {
+  <ng-template pTemplate="header"> Request History </ng-template>
+  }
+  <div class="flex flex-col gap-1 w-full">
     @if (loading) {
-      <div class="flex items-center justify-center py-6">
-        <p-progressSpinner strokeWidth="4"></p-progressSpinner>
+    <div class="flex flex-col gap-1">
+      @for (skeleton of skeletonPlaceholders; track skeleton) {
+      <div class="rounded-lg border border-slate-800/60 bg-slate-900/50">
+        <p-skeleton
+          height="1.1rem"
+          width="60%"
+          borderRadius="0.75rem"
+        ></p-skeleton>
+        <div class="mt-2 flex gap-2">
+          <p-skeleton
+            height="0.9rem"
+            width="5rem"
+            borderRadius="9999px"
+          ></p-skeleton>
+          <p-skeleton
+            height="0.9rem"
+            width="4rem"
+            borderRadius="9999px"
+          ></p-skeleton>
+          <p-skeleton
+            height="0.9rem"
+            width="7rem"
+            borderRadius="9999px"
+          ></p-skeleton>
+        </div>
       </div>
+      }
+    </div>
     } @else if (!pastRequests.length) {
-      <div class="rounded-lg border border-dashed border-slate-600 bg-slate-900/40 p-6 text-center text-sm text-slate-300">
-        No requests recorded yet. Run a request to see it listed here.
-      </div>
-    } @else {
-      @for (request of pastRequests; track trackById($index, request)) {
-        <div
-          class="cursor-pointer rounded-lg border border-slate-700/70 bg-slate-900/60 p-4 transition hover:border-sky-500 hover:bg-slate-900/80"
+    <div
+      class="text-center text-sm text-slate-500 uppercase tracking-wide w-full p-2"
+    >
+      No requests recorded yet. Run a request to see it listed here.
+    </div>
+    } @else { @for (request of pastRequests; track trackById($index, request)) {
+    <div
+      class="overflow-hidden rounded-lg border border-l-4 bg-slate-900/60 transition hover:bg-slate-900/75"
+      [ngClass]="{
+        'border-l-blue-300': request.method === 'GET',
+        'border-l-emerald-300': request.method === 'POST'
+      }"
+    >
+      <div class="flex items-center gap-1">
+        <span
+          class="cursor-pointer truncate font-mono text-sm text-slate-300"
           (click)="load(request)"
-          pTooltip="Click to load this request"
-          tooltipPosition="top"
+          (mouseenter)="detailsPopover.show($event, infoButton)"
+          (mouseleave)="detailsPopover.hide()"
         >
-          <div class="flex items-start gap-3">
-            <div
-              class="flex h-8 min-w-[4.5rem] items-center justify-center rounded-md border border-slate-500/40 bg-slate-800 px-3 font-mono text-xs font-bold uppercase text-slate-100"
-              [ngClass]="{
-                'border-sky-400/60 text-sky-300': request.method === 'GET',
-                'border-emerald-400/60 text-emerald-300': request.method === 'POST'
-              }"
-            >
-              {{ request.method }}
+          {{ request.url }}
+        </span>
+        <button
+          pButton
+          type="button"
+          text
+          severity="danger"
+          class="uppercase"
+          pTooltip="Delete request"
+          tooltipPosition="top"
+          (click)="confirmDelete(request, $event)"
+        >
+          <span class="material-icons text-base">delete</span>
+        </button>
+
+        <p-popover
+          #detailsPopover
+          appendTo="body"
+          [dismissable]="true"
+          [styleClass]="'hidden md:block'"
+        >
+          <div class="space-y-2 text-xs text-slate-100 min-w-fit">
+            <div class="flex flex-col items-start">
+              <span
+                class="font-light uppercase font-mono text-xs"
+                [ngClass]="{
+                  'text-blue-300': request.method === 'GET',
+                  'text-emerald-300': request.method === 'POST'
+                }"
+              >
+                {{ request.method }}
+              </span>
+              <span class="font-semibold font-mono text-sm text-slate-300">
+                {{ request.url }}
+              </span>
             </div>
-            <div class="flex-1 overflow-hidden">
-              <div class="flex items-start justify-between gap-3">
-                <p class="truncate font-mono text-sm text-slate-200">
-                  {{ request.url }}
-                </p>
-                <button
-                  pButton
-                  type="button"
-                  icon="pi pi-trash"
-                  severity="danger"
-                  class="h-9 w-9 shrink-0"
-                  pTooltip="Delete request"
-                  tooltipPosition="left"
-                  (click)="delete(request, $event)"
-                ></button>
-              </div>
-              <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-                @if (request.status !== undefined) {
-                  <span class="rounded bg-slate-800 px-2 py-1 font-semibold">
-                    Status: {{ request.status }}
-                  </span>
-                }
-                @if (request.durationMs !== undefined) {
-                  <span class="rounded bg-slate-800 px-2 py-1">
-                    {{ request.durationMs }} ms
-                  </span>
-                }
-                <span class="rounded bg-slate-800 px-2 py-1">
-                  {{ request.createdAt | date: 'short' }}
+
+            <div class="flex flex-wrap items-center justify-start">
+              @if (request.status !== undefined) {
+              <div class="flex items-center gap-1 p-2">
+                <span class="material-symbols-outlined text-base text-sky-300">
+                  check_circle
                 </span>
+                <span>{{ request.status }}</span>
+              </div>
+              } @if (request.durationMs !== undefined) {
+              <div class="flex items-center gap-1 p-2">
+                <span
+                  class="material-symbols-outlined text-base text-emerald-300"
+                >
+                  schedule
+                </span>
+                <span>{{ request.durationMs }} ms</span>
+              </div>
+              }
+              <div class="flex items-center gap-1 p-2">
+                <span
+                  class="material-symbols-outlined text-base text-amber-300"
+                >
+                  calendar_month
+                </span>
+                <span>{{ request.createdAt | date : "short" }}</span>
               </div>
             </div>
           </div>
-        </div>
-      }
-    }
+        </p-popover>
+      </div>
+
+      <div class="border-t border-slate-800/60 md:hidden">
+        <p-accordion>
+          <p-accordionTab header="Details">
+            <div class="space-y-2 text-xs text-slate-300">
+              @if (request.status !== undefined) {
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-sky-300"
+                  >check_circle</span
+                >
+                <span>Status: {{ request.status }}</span>
+              </div>
+              } @if (request.durationMs !== undefined) {
+              <div class="flex items-center gap-2">
+                <span
+                  class="material-symbols-outlined text-base text-emerald-300"
+                  >schedule</span
+                >
+                <span>{{ request.durationMs }} ms</span>
+              </div>
+              }
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-base text-amber-300"
+                  >calendar_month</span
+                >
+                <span>{{ request.createdAt | date : "short" }}</span>
+              </div>
+            </div>
+          </p-accordionTab>
+        </p-accordion>
+      </div>
+    </div>
+    } }
   </div>
-</p-card>
+</section>

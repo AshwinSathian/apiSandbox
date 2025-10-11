@@ -1,0 +1,18 @@
+:host ::ng-deep .app-drawer.p-drawer {
+  background: #0f1524;
+  border-right: 1px solid rgba(30, 41, 59, 0.6);
+  box-shadow: none;
+}
+
+:host ::ng-deep .app-drawer .p-drawer-content {
+  padding: 0;
+  background: transparent;
+}
+
+:host ::ng-deep .app-drawer .p-drawer-header {
+  display: none;
+}
+
+:host ::ng-deep .app-drawer .p-drawer-close {
+  display: none;
+}

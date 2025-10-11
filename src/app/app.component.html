@@ -1,32 +1,12 @@
-<div class="bg-gray-950 w-screen h-screen m-0 p-0">
-  <header class="mt-8 mb-12">
-    <h1 class="text-center text-4xl font-semibold text-white md:text-5xl">
-      API Sandbox
-    </h1>
-  </header>
-
-  <div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 md:flex-row">
-    <div class="w-full md:flex-1">
-      <app-api-params
-        (newRequest)="refreshPastRequests()"
-      ></app-api-params>
-    </div>
-    <div class="w-full space-y-3 md:w-[28rem]">
-      <app-past-requests
-        [pastRequests]="pastRequests"
-        [loading]="historyLoading"
-        (loadRequest)="loadRequestHandler($event)"
-        (deleteRequest)="deletePastRequest($event)"
-      ></app-past-requests>
-      <button
-        pButton
-        class="w-full"
-        severity="danger"
-        label="Clear Past Requests"
-        [disabled]="historyLoading || !pastRequests.length"
-        (click)="clearPastRequests()"
-        type="button"
-      ></button>
-    </div>
-  </div>
-</div>
+<app-shell
+  [pastRequests]="pastRequests"
+  [historyLoading]="historyLoading"
+  [drawerVisible]="drawerVisible"
+  [isMobile]="isMobile"
+  (newRequest)="refreshPastRequests()"
+  (clearHistory)="clearPastRequests()"
+  (deleteRequest)="deletePastRequest($event)"
+  (openDrawer)="openHistoryDrawer()"
+  (closeDrawer)="closeHistoryDrawer()"
+  (toggleDrawer)="toggleHistoryDrawer()"
+></app-shell>

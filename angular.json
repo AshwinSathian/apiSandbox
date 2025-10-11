@@ -22,7 +22,15 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "aot": false,
-            "assets": ["src/favicon.ico", "src/assets"],
+            "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "public",
+                "output": "/"
+              }
+            ],
             "styles": [
               "node_modules/primeicons/primeicons.css",
               "src/styles.css"
@@ -85,7 +93,15 @@
             "polyfills": "src/polyfills.ts",
             "tsConfig": "tsconfig.spec.json",
             "karmaConfig": "karma.conf.js",
-            "assets": ["src/favicon.ico", "src/assets"],
+            "assets": [
+              "src/favicon.ico",
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "public",
+                "output": "/"
+              }
+            ],
             "styles": [
               "node_modules/primeicons/primeicons.css",
               "src/styles.css"

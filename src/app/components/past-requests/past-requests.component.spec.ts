@@ -2,15 +2,18 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { PastRequestsComponent } from './past-requests.component';
 import { PastRequest } from '../../models/history.models';
+import { ConfirmationService } from 'primeng/api';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 describe('PastRequestsComponent', () => {
   let component: PastRequestsComponent;
   let fixture: ComponentFixture<PastRequestsComponent>;
 
   beforeEach(async () => {
+    const confirmationSpy = jasmine.createSpyObj<ConfirmationService>('ConfirmationService', ['confirm']);
     await TestBed.configureTestingModule({
-      imports: [PastRequestsComponent],
-      providers: [provideNoopAnimations()],
+      imports: [PastRequestsComponent, ConfirmDialogModule],
+      providers: [provideNoopAnimations(), { provide: ConfirmationService, useValue: confirmationSpy }],
     }).compileComponents();
   });
 
@@ -42,7 +45,11 @@ describe('PastRequestsComponent', () => {
     component.load(request);
     expect(loadSpy).toHaveBeenCalledWith(request);
 
-    component.delete(request, new Event('click'));
+    const confirmationService = TestBed.inject(ConfirmationService) as jasmine.SpyObj<ConfirmationService>;
+    component.confirmDelete(request, new Event('click'));
+    expect(confirmationService.confirm).toHaveBeenCalled();
+    const latestCall = confirmationService.confirm.calls.mostRecent().args[0];
+    latestCall.accept();
     expect(deleteSpy).toHaveBeenCalledWith(1);
   });
 });

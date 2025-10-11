@@ -1,0 +1,109 @@
+<div class="flex min-h-screen bg-[#0b0f19] text-slate-100">
+  <p-drawer
+    position="left"
+    [visible]="drawerVisible"
+    [modal]="isMobile"
+    [dismissible]="isMobile"
+    [blockScroll]="isMobile"
+    [showCloseIcon]="false"
+    [style]="{ width: drawerWidth }"
+    styleClass="app-drawer"
+    (onHide)="closeDrawer.emit()"
+  >
+    <div class="flex h-full flex-col">
+      <div
+        class="flex items-center justify-between border-b border-slate-800/70 px-4 py-4"
+      >
+        <div class="flex items-center gap-3">
+          <h2 class="text-2xl font-semibold text-slate-200 uppercase">
+            API Sandbox
+          </h2>
+        </div>
+        @if (isMobile) {
+        <button
+          pButton
+          type="button"
+          icon="pi pi-times"
+          class="p-button-rounded p-button-text"
+          (click)="closeDrawer.emit()"
+        ></button>
+        }
+      </div>
+
+      @if (isMobile) {
+      <div class="px-4 py-3">
+        <button
+          pButton
+          type="button"
+          icon="pi pi-plus-circle"
+          label="New request"
+          class="w-full justify-start gap-3 bg-transparent text-slate-200 hover:bg-slate-800/60"
+          (click)="isMobile ? closeDrawer.emit() : null"
+        ></button>
+      </div>
+      }
+
+      <div class="px-4 text-md text-slate-250 flex items-center gap-2">
+        <span class="material-icons text-base">history</span>
+        <span class="uppercase tracking-wide">History</span>
+      </div>
+      <div class="flex-1 overflow-y-auto p-1">
+        <app-past-requests
+          [pastRequests]="pastRequests"
+          [loading]="historyLoading"
+          [displayHeader]="false"
+          (loadRequest)="handleLoadRequest($event)"
+          (deleteRequest)="deleteRequest.emit($event)"
+        ></app-past-requests>
+      </div>
+
+      <div class="border-t border-slate-800/70 p-4">
+        <button
+          pButton
+          type="button"
+          severity="danger"
+          label="Clear history"
+          class="uppercase"
+          class="w-full"
+          [disabled]="historyLoading || !pastRequests.length"
+          (click)="clearHistory.emit()"
+        ></button>
+      </div>
+    </div>
+  </p-drawer>
+
+  <div
+    class="flex flex-1 flex-col transition-all duration-300"
+    [ngClass]="{ 'md:ml-[22rem]': !isMobile && drawerVisible }"
+  >
+    <div class="p-4 w-full">
+      <button
+        pButton
+        type="button"
+        text
+        severity="secondary"
+        class="text-slate-300"
+        (click)="toggleDrawer.emit()"
+      >
+        <span class="material-icons text-2xl">side_navigation</span>
+      </button>
+    </div>
+
+    <main class="flex-1 overflow-y-auto">
+      <div class="flex w-full flex-col gap-6 px-4 pb-12 pt-4 md:px-8">
+        <div class="flex flex-col gap-6 px-6 py-8 md:px-10 md:py-10">
+          <div class="flex flex-col gap-1 text-center md:text-left uppercase">
+            <span class="text-2xl font-medium text-white md:text-3xl">
+              Compose your request
+            </span>
+            <span class="text-sm text-slate-400 my-0 py-0 tracking-wide">
+              Set up the endpoint, headers, and payload — then send it in one
+              click.
+            </span>
+          </div>
+          <app-api-params (newRequest)="newRequest.emit()"></app-api-params>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

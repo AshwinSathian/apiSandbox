@@ -4,6 +4,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { AppComponent } from './app.component';
 import { IdbService } from './data/idb.service';
 import { PastRequest } from './models/history.models';
+import { ConfirmationService } from 'primeng/api';
 
 class IdbServiceMock {
   init = jasmine.createSpy('init').and.returnValue(Promise.resolve());
@@ -24,9 +25,14 @@ describe('AppComponent', () => {
       providers: [
         provideHttpClient(withInterceptorsFromDi()),
         provideNoopAnimations(),
-        { provide: IdbService, useValue: idbService }
+        { provide: IdbService, useValue: idbService },
+        ConfirmationService,
       ],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    delete (window as any).innerWidth;
   });
 
   it('should create the app', () => {
@@ -36,6 +42,7 @@ describe('AppComponent', () => {
   });
 
   it('loads history on init', fakeAsync(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
     const history: PastRequest[] = [{
       id: 1,
       method: 'GET',
@@ -57,6 +64,7 @@ describe('AppComponent', () => {
   }));
 
   it('clears history via the service', fakeAsync(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
     const history: PastRequest[] = [{ id: 1, method: 'GET', url: 'https://example.com', headers: {}, createdAt: 1 }];
     idbService.getLatest.and.returnValue(Promise.resolve(history));
 
@@ -75,6 +83,7 @@ describe('AppComponent', () => {
   }));
 
   it('deletes history entries', fakeAsync(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
     const history: PastRequest[] = [{ id: 5, method: 'GET', url: 'https://delete.me', headers: {}, createdAt: 1 }];
     idbService.getLatest.and.returnValue(Promise.resolve(history));
 
@@ -92,20 +101,21 @@ describe('AppComponent', () => {
     expect(component.pastRequests).toEqual([]);
   }));
 
-  it('loads stored request into the form when requested', fakeAsync(() => {
-    const history: PastRequest[] = [{ id: 7, method: 'GET', url: 'https://load.me', headers: {}, createdAt: 1 }];
-    idbService.getLatest.and.returnValue(Promise.resolve(history));
+  it('controls drawer visibility state', fakeAsync(() => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 });
+    idbService.getLatest.and.returnValue(Promise.resolve([]));
 
     fixture = TestBed.createComponent(AppComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
     flushMicrotasks();
 
-    const apiParams = component.apiParams;
-    const loadSpy = spyOn(apiParams, 'loadPastRequest');
-    const request = history[0];
-
-    component.loadRequestHandler(request);
-    expect(loadSpy).toHaveBeenCalledWith(request);
+    expect(component.drawerVisible).toBeTrue();
+    component.toggleHistoryDrawer();
+    expect(component.drawerVisible).toBeFalse();
+    component.openHistoryDrawer();
+    expect(component.drawerVisible).toBeTrue();
+    component.closeHistoryDrawer();
+    expect(component.drawerVisible).toBeFalse();
   }));
 });
