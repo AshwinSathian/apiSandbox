@@ -2,9 +2,10 @@ import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { MainService } from 'src/app/services/main.service';
 
 @Component({
-  selector: 'app-api-params',
-  templateUrl: './api-params.component.html',
-  styleUrls: ['./api-params.component.css']
+    selector: 'app-api-params',
+    templateUrl: './api-params.component.html',
+    styleUrls: ['./api-params.component.css'],
+    standalone: false
 })
 export class ApiParamsComponent implements OnInit {
 
