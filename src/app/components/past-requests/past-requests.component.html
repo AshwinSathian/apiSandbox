@@ -53,7 +53,7 @@
         <span
           class="cursor-pointer truncate font-mono text-sm text-slate-300"
           (click)="load(request)"
-          (mouseenter)="detailsPopover.show($event, infoButton)"
+          (mouseenter)="detailsPopover.show($event)"
           (mouseleave)="detailsPopover.hide()"
         >
           {{ request.url }}
@@ -70,6 +70,33 @@
         >
           <span class="material-icons text-base">delete</span>
         </button>
+
+        <p-confirmpopup #cp>
+          <ng-template #headless let-message>
+            <div class="rounded p-4 text-sm">
+              <span class="tracking-wide text-slate-300">
+                {{ message.message }}
+              </span>
+              <div class="flex items-center gap-2 mt-4">
+                <p-button
+                  (onClick)="cp.onAccept()"
+                  label="Delete"
+                  severity="danger"
+                  size="small"
+                  text
+                />
+                <p-button
+                  (onClick)="cp.onReject()"
+                  label="Cancel"
+                  text
+                  size="small"
+                  severity="secondary"
+                  class="uppercase"
+                />
+              </div>
+            </div>
+          </ng-template>
+        </p-confirmpopup>
 
         <p-popover
           #detailsPopover
@@ -126,32 +153,37 @@
 
       <div class="border-t border-slate-800/60 md:hidden">
         <p-accordion>
-          <p-accordionTab header="Details">
-            <div class="space-y-2 text-xs text-slate-300">
-              @if (request.status !== undefined) {
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-base text-sky-300"
-                  >check_circle</span
-                >
-                <span>Status: {{ request.status }}</span>
+          <p-accordion-panel [value]="request.id ?? $index">
+            <p-accordion-header>
+              <span class="text-xs font-semibold uppercase tracking-wide text-slate-300">Details</span>
+            </p-accordion-header>
+            <p-accordion-content>
+              <div class="space-y-2 text-xs text-slate-300">
+                @if (request.status !== undefined) {
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base text-sky-300"
+                    >check_circle</span
+                  >
+                  <span>Status: {{ request.status }}</span>
+                </div>
+                } @if (request.durationMs !== undefined) {
+                <div class="flex items-center gap-2">
+                  <span
+                    class="material-symbols-outlined text-base text-emerald-300"
+                    >schedule</span
+                  >
+                  <span>{{ request.durationMs }} ms</span>
+                </div>
+                }
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-base text-amber-300"
+                    >calendar_month</span
+                  >
+                  <span>{{ request.createdAt | date : "short" }}</span>
+                </div>
               </div>
-              } @if (request.durationMs !== undefined) {
-              <div class="flex items-center gap-2">
-                <span
-                  class="material-symbols-outlined text-base text-emerald-300"
-                  >schedule</span
-                >
-                <span>{{ request.durationMs }} ms</span>
-              </div>
-              }
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-base text-amber-300"
-                  >calendar_month</span
-                >
-                <span>{{ request.createdAt | date : "short" }}</span>
-              </div>
-            </div>
-          </p-accordionTab>
+            </p-accordion-content>
+          </p-accordion-panel>
         </p-accordion>
       </div>
     </div>

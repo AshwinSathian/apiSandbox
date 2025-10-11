@@ -4,6 +4,7 @@
     [visible]="drawerVisible"
     [modal]="isMobile"
     [dismissible]="isMobile"
+    [closeOnEscape]="isMobile"
     [blockScroll]="isMobile"
     [showCloseIcon]="false"
     [style]="{ width: drawerWidth }"
@@ -63,10 +64,9 @@
           type="button"
           severity="danger"
           label="Clear history"
-          class="uppercase"
-          class="w-full"
+          class="w-full uppercase"
           [disabled]="historyLoading || !pastRequests.length"
-          (click)="clearHistory.emit()"
+          (click)="confirmClear()"
         ></button>
       </div>
     </div>
@@ -107,3 +107,37 @@
     </main>
   </div>
 </div>
+
+<p-confirmdialog #cd>
+  <ng-template
+    #headless
+    let-message
+    let-onAccept="onAccept"
+    let-onReject="onReject"
+  >
+    <div
+      class="flex flex-col items-center p-8 bg-surface-0 dark:bg-surface-900 rounded"
+    >
+      <span class="font-bold text-2xl block mb-2 mt-6">{{
+        message.header
+      }}</span>
+      <p class="mb-0">{{ message.message }}</p>
+      <div class="flex items-center gap-2 mt-6">
+        <p-button
+          severity="danger"
+          label="Proceed"
+          (onClick)="onAccept()"
+          styleClass="w-32"
+        ></p-button>
+        <p-button
+          label="Cancel"
+          text
+          severity="secondary"
+          [outlined]="true"
+          (onClick)="onReject()"
+          styleClass="w-32"
+        ></p-button>
+      </div>
+    </div>
+  </ng-template>
+</p-confirmdialog>
