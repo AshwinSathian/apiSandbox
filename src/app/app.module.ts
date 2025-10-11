@@ -6,10 +6,10 @@ import { FormsModule } from '@angular/forms';
 
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { TabViewModule } from 'primeng/tabview';
+import { TabsModule } from 'primeng/tabs';
 import { TooltipModule } from 'primeng/tooltip';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -34,8 +34,8 @@ import { PastRequestsComponent } from './components/past-requests/past-requests.
     InputTextModule,
     ButtonModule,
     ProgressSpinnerModule,
-    DropdownModule,
-    TabViewModule,
+    SelectModule,
+    TabsModule,
     TooltipModule
   ],
   providers: [],

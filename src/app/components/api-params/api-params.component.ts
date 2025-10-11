@@ -3,10 +3,10 @@ import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { TabViewModule } from 'primeng/tabview';
+import { TabsModule } from 'primeng/tabs';
 import { MainService } from 'src/app/services/main.service';
 
 @Component({
@@ -18,10 +18,10 @@ import { MainService } from 'src/app/services/main.service';
       ReactiveFormsModule,
       ButtonModule,
       CardModule,
-      DropdownModule,
+      SelectModule,
       InputTextModule,
       ProgressSpinnerModule,
-      TabViewModule,
+      TabsModule,
     ],
     templateUrl: './api-params.component.html',
     styleUrls: ['./api-params.component.css']
@@ -45,6 +45,7 @@ export class ApiParamsComponent implements OnInit {
   requestHeaders: any;
   endpointError: string;
   loadingState: boolean;
+  activeTab: string;
 
   constructor(private _mainService: MainService) {
     this.endpoint = '';
@@ -67,6 +68,7 @@ export class ApiParamsComponent implements OnInit {
     this.requestHeaders = [{ key: 'Content-Type', value: 'application/json' }];
     this.endpointError = '';
     this.loadingState = false;
+    this.activeTab = 'headers';
   }
 
   ngOnInit() {}
@@ -131,11 +133,16 @@ export class ApiParamsComponent implements OnInit {
   }
 
   loadPastRequest(request: any) {
-    this.selectedRequestMethod = request.method;
+    this.onRequestMethodChange(request.method);
     this.endpoint = request.endpoint;
     this.requestHeaders = this.deconstructObject(request.headers, 'Headers');
     if (request.method === 'POST') {
       this.requestBody = this.deconstructObject(request.body, 'Body');
+      this.activeTab = 'body';
+    } else {
+      this.requestBody = [{ key: '', value: '' }];
+      this.requestBodyDataTypes = [''];
+      this.activeTab = 'headers';
     }
   }
 
@@ -247,11 +254,20 @@ export class ApiParamsComponent implements OnInit {
     this.saveRequest(this.selectedRequestMethod);
     this.newRequest.emit();
 
-    this.selectedRequestMethod = 'GET';
+    this.onRequestMethodChange('GET');
     this.endpoint = '';
     this.requestBody = [{ key: '', value: '' }];
     this.requestBodyDataTypes = [''];
     this.requestHeaders = [{ key: 'Content-Type', value: 'application/json' }];
     this.endpointError = '';
+  }
+
+  onRequestMethodChange(method: string) {
+    this.selectedRequestMethod = method;
+    if (method !== 'POST') {
+      this.activeTab = 'headers';
+      this.requestBody = [{ key: '', value: '' }];
+      this.requestBodyDataTypes = [''];
+    }
   }
 }

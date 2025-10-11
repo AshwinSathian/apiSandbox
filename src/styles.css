@@ -64,41 +64,47 @@ app-root {
   color: #e2e8f0;
 }
 
-.p-tabview {
+.p-tabs {
   border-radius: 0.75rem;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.15);
 }
 
-.p-tabview .p-tabview-nav {
+.p-tablist {
   background: transparent;
   border-bottom: 1px solid rgba(148, 163, 184, 0.25);
 }
 
-.p-tabview .p-tabview-nav li .p-tabview-nav-link {
-  background: transparent;
+.p-tablist-tab-list {
+  gap: 1rem;
+}
+
+.p-tab {
   color: #cbd5f5;
 }
 
-.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+.p-tab[data-p-active='true'] {
   color: #38bdf8;
-  border-color: #38bdf8;
 }
 
-.p-dropdown,
+.p-tablist-active-bar {
+  background: #38bdf8;
+}
+
+.p-select,
 .p-inputtext {
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: #e2e8f0;
 }
 
-.p-dropdown-panel,
-.p-dropdown-items {
+.p-select-overlay,
+.p-select-list {
   background: rgba(15, 23, 42, 0.95);
   color: #e2e8f0;
 }
 
-.p-dropdown-items .p-dropdown-item.p-highlight {
+.p-select-list .p-select-option.p-select-option-selected {
   background: rgba(56, 189, 248, 0.2);
   color: #38bdf8;
 }
