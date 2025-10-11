@@ -1,11 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* You can add global styles to this file, and also import other style files */
 
-html, body { 
-    height: 100%; 
-    background-color: #1B2025;
+* {
+  font-family: "Open Sans", sans-serif;
 }
 
-body { 
-    margin: 0; 
-    font-family: 'Lato', sans-serif;
+html {
+  @apply bg-gray-950;
 }

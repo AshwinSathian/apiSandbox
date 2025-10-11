@@ -1,31 +1,33 @@
-<mat-card class="w-100">
+<mat-card class="w-full">
   <mat-card-header>
     <mat-card-title>Past Requests</mat-card-title>
   </mat-card-header>
-  <mat-card-content>
+  <mat-card-content class="space-y-3">
     @for (request of pastRequests; track request) {
       <div
-        class="container-fluid"
+        class="cursor-pointer rounded-lg border p-3 opacity-90 transition hover:opacity-100"
+        [ngClass]="{
+          'border-blue-500 bg-blue-500/10': request.method === 'GET',
+          'border-green-500 bg-green-500/10': request.method === 'POST'
+        }"
         (click)="load(request)"
         matTooltip="Click to load this Request"
-            [ngClass]="{ 'get': request.method === 'GET',
-            'post': request.method === 'POST' }"
-        >
-        <div class="row">
-                <div class="col-md-3" [ngClass]="{ 
-                    'getRequest': request.method === 'GET',
-                    'postRequest': request.method === 'POST'
-                }">
+      >
+        <div class="flex items-stretch gap-3">
+          <div
+            class="flex w-20 items-center justify-center rounded-md font-mono text-sm font-bold uppercase text-white"
+            [ngClass]="{
+              'bg-blue-600': request.method === 'GET',
+              'bg-green-600': request.method === 'POST'
+            }"
+          >
             {{ request.method }}
           </div>
-          <div
-            class="col-md-9 endpoint"
-            >
+          <div class="flex-1 overflow-hidden font-mono text-sm text-white">
             {{ request.endpoint }}
-            </div
-            >
           </div>
         </div>
-      }
-    </mat-card-content>
-  </mat-card>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>
