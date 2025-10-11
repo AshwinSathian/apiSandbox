@@ -21,7 +21,7 @@
       <div class="col-md-9">
         <mat-form-field appearance="outline" class="w-100">
           <mat-label>API Endpoint</mat-label>
-          <input type="url" #end matInput placeholder="Enter URL here..." #end="ngModel" [(ngModel)]="endpoint">
+          <input type="url" matInput placeholder="Enter URL here..." [(ngModel)]="endpoint">
           @if (endpointError !== '') {
             <mat-error>{{ endpointError }}</mat-error>
           }

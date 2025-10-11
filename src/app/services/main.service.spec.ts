@@ -1,9 +1,11 @@
+import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-
 import { MainService } from './main.service';
 
 describe('MainService', () => {
-  beforeEach(() => TestBed.configureTestingModule({}));
+  beforeEach(() => TestBed.configureTestingModule({
+    providers: [provideHttpClient()],
+  }));
 
   it('should be created', () => {
     const service: MainService = TestBed.inject(MainService);

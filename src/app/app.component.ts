@@ -1,11 +1,20 @@
+import { CommonModule } from '@angular/common';
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { ApiParamsComponent } from './components/api-params/api-params.component';
+import { PastRequestsComponent } from './components/past-requests/past-requests.component';
 
 @Component({
     selector: 'app-root',
+    standalone: true,
+    imports: [
+      CommonModule,
+      MatButtonModule,
+      ApiParamsComponent,
+      PastRequestsComponent,
+    ],
     templateUrl: './app.component.html',
-    styleUrls: ['./app.component.css'],
-    standalone: false
+    styleUrls: ['./app.component.css']
 })
 export class AppComponent implements OnInit {
 
