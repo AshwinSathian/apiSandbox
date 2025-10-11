@@ -20,13 +20,13 @@
         (loadRequest)="loadRequestHandler($event)"
       ></app-past-requests>
       <button
-        mat-flat-button
+        pButton
         class="w-full"
-        color="warn"
+        severity="danger"
+        label="Clear Past Requests"
         (click)="clearPastRequests()"
-      >
-        Clear Past Requests
-      </button>
+        type="button"
+      ></button>
     </div>
     }
   </div>

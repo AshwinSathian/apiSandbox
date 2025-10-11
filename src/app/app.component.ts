@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
+import { ButtonModule } from 'primeng/button';
 import { ApiParamsComponent } from './components/api-params/api-params.component';
 import { PastRequestsComponent } from './components/past-requests/past-requests.component';
 
@@ -9,7 +9,7 @@ import { PastRequestsComponent } from './components/past-requests/past-requests.
     standalone: true,
     imports: [
       CommonModule,
-      MatButtonModule,
+      ButtonModule,
       ApiParamsComponent,
       PastRequestsComponent,
     ],

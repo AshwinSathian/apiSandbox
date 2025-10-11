@@ -1,188 +1,177 @@
-<mat-card class="w-full">
-  <mat-card-content class="space-y-6">
+<p-card class="w-full">
+  <div class="space-y-6">
     <div class="flex flex-col gap-4 md:flex-row">
       <div class="w-full md:w-1/4">
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>Request Method</mat-label>
-          <mat-select [(value)]="selectedRequestMethod">
-            @for (method of requestMethods; track method) {
-              <mat-option [value]="method">
-                {{ method }}
-              </mat-option>
-            }
-          </mat-select>
-        </mat-form-field>
+        <label class="mb-2 block text-sm font-semibold uppercase tracking-wide text-slate-200">Request Method</label>
+        <p-dropdown
+          class="w-full"
+          [options]="requestMethods"
+          optionLabel="label"
+          optionValue="value"
+          appendTo="body"
+          [(ngModel)]="selectedRequestMethod"
+        ></p-dropdown>
       </div>
       <div class="w-full md:w-3/4">
-        <mat-form-field appearance="outline" class="w-full">
-          <mat-label>API Endpoint</mat-label>
-          <input type="url" matInput placeholder="Enter URL here..." [(ngModel)]="endpoint">
-          @if (endpointError !== '') {
-            <mat-error>{{ endpointError }}</mat-error>
-          }
-        </mat-form-field>
+        <label class="mb-2 block text-sm font-semibold uppercase tracking-wide text-slate-200">API Endpoint</label>
+        <input
+          pInputText
+          type="url"
+          class="w-full"
+          placeholder="Enter URL here..."
+          [(ngModel)]="endpoint"
+        >
+        @if (endpointError !== '') {
+          <small class="mt-1 block text-sm text-red-400">{{ endpointError }}</small>
+        }
       </div>
     </div>
 
     <section class="rounded-lg bg-slate-900/40 p-6">
-      <mat-tab-group>
-        <mat-tab label="Headers">
+      <p-tabView>
+        <p-tabPanel header="Headers">
           <div class="space-y-4">
             <div class="grid grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide">
               <div class="col-span-5">Key</div>
               <div class="col-span-6">Value</div>
-              <div class="col-span-1"></div>
+              <div class="col-span-1 text-center"></div>
             </div>
             @for (item of requestHeaders; track item; let index = $index) {
               <div class="grid grid-cols-12 items-center gap-4">
                 <div class="col-span-5">
-                  <mat-form-field class="w-full">
-                    <input
-                      matInput
-                      [disabled]="item.key === 'Content-Type'"
-                      class="requestBodyItem"
-                      [(ngModel)]="item.key"
-                    >
-                  </mat-form-field>
+                  <input
+                    pInputText
+                    [disabled]="item.key === 'Content-Type'"
+                    class="requestBodyItem w-full"
+                    [(ngModel)]="item.key"
+                  >
                 </div>
                 <div class="col-span-6">
-                  <mat-form-field class="w-full">
-                    <input
-                      matInput
-                      [disabled]="item.key === 'Content-Type'"
-                      class="requestBodyItem"
-                      [(ngModel)]="item.value"
-                    >
-                  </mat-form-field>
-                </div>
-                <div class="col-span-1">
-                  <button
-                    mat-button
+                  <input
+                    pInputText
                     [disabled]="item.key === 'Content-Type'"
-                    color="warn"
-                    class="block mx-auto"
-                    (click)="removeItem(index, 'Headers')"
+                    class="requestBodyItem w-full"
+                    [(ngModel)]="item.value"
                   >
-                    <i class="material-icons">highlight_off</i>
-                  </button>
+                </div>
+                <div class="col-span-1 text-center">
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-times"
+                    [disabled]="item.key === 'Content-Type'"
+                    class="h-9 w-9"
+                    severity="danger"
+                    (click)="removeItem(index, 'Headers')"
+                  ></button>
                 </div>
               </div>
             }
             <div class="pt-2">
               <button
-                mat-flat-button
-                color="accent"
+                pButton
+                type="button"
+                icon="pi pi-plus"
+                label="Add Item"
                 [disabled]="isAddDisabled('Headers')"
-                class="px-4"
+                severity="secondary"
                 (click)="addItem('Headers')"
-              >
-                <span>ADD ITEM</span>
-              </button>
+              ></button>
             </div>
           </div>
-        </mat-tab>
+        </p-tabPanel>
         @if (selectedRequestMethod === 'POST') {
-          <mat-tab label="Body">
+          <p-tabPanel header="Body">
             <div class="space-y-4">
               <div class="grid grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide">
                 <div class="col-span-4">Key</div>
                 <div class="col-span-4">Value</div>
                 <div class="col-span-3">Data Type</div>
-                <div class="col-span-1"></div>
+                <div class="col-span-1 text-center"></div>
               </div>
               @for (item of requestBody; track item; let index = $index) {
                 <div class="grid grid-cols-12 items-center gap-4">
                   <div class="col-span-4">
-                    <mat-form-field class="w-full">
-                      <input
-                        matInput
-                        class="requestBodyItem"
-                        [(ngModel)]="item.key"
-                      >
-                    </mat-form-field>
+                    <input
+                      pInputText
+                      class="requestBodyItem w-full"
+                      [(ngModel)]="item.key"
+                    >
                   </div>
                   <div class="col-span-4">
                     @if (requestBodyDataTypes[index] !== 'Boolean') {
-                      <mat-form-field class="w-full">
-                        <input
-                          [type]="requestBodyDataTypes[index].toLowerCase()"
-                          matInput
-                          [disabled]="requestBodyDataTypes[index] === ''"
-                          class="requestBodyItem"
-                          [(ngModel)]="item.value"
-                        >
-                      </mat-form-field>
+                      <input
+                        pInputText
+                        [type]="requestBodyDataTypes[index] ? requestBodyDataTypes[index].toLowerCase() : 'text'"
+                        [disabled]="requestBodyDataTypes[index] === ''"
+                        class="requestBodyItem w-full"
+                        [(ngModel)]="item.value"
+                      >
                     }
                     @if (requestBodyDataTypes[index] === 'Boolean') {
-                      <mat-form-field appearance="legacy" class="w-full">
-                        <mat-label>Value</mat-label>
-                        <mat-select
-                          [disabled]="requestBodyDataTypes[index] === ''"
-                          [(value)]="item.value"
-                        >
-                          <mat-option value="true">True</mat-option>
-                          <mat-option value="false">False</mat-option>
-                        </mat-select>
-                      </mat-form-field>
+                      <p-dropdown
+                        class="w-full"
+                        [disabled]="requestBodyDataTypes[index] === ''"
+                        [options]="booleanOptions"
+                        optionLabel="label"
+                        optionValue="value"
+                        appendTo="body"
+                        [(ngModel)]="item.value"
+                      ></p-dropdown>
                     }
                   </div>
                   <div class="col-span-3">
-                    <mat-form-field appearance="legacy" class="w-full">
-                      <mat-label>Data Type</mat-label>
-                      <mat-select [(value)]="requestBodyDataTypes[index]">
-                        @for (type of availableDataTypes; track type) {
-                          <mat-option [value]="type">
-                            {{ type }}
-                          </mat-option>
-                        }
-                      </mat-select>
-                    </mat-form-field>
+                    <p-dropdown
+                      class="w-full"
+                      [options]="availableDataTypes"
+                      optionLabel="label"
+                      optionValue="value"
+                      appendTo="body"
+                      [(ngModel)]="requestBodyDataTypes[index]"
+                    ></p-dropdown>
                   </div>
-                  <div class="col-span-1">
+                  <div class="col-span-1 text-center">
                     <button
-                      mat-button
-                      color="warn"
-                      class="block mx-auto"
+                      pButton
+                      type="button"
+                      icon="pi pi-times"
+                      severity="danger"
+                      class="h-9 w-9"
                       (click)="removeItem(index, 'Body')"
-                    >
-                      <i class="material-icons">highlight_off</i>
-                    </button>
+                    ></button>
                   </div>
                 </div>
               }
               <div class="pt-2">
                 <button
-                  mat-flat-button
-                  color="accent"
+                  pButton
+                  type="button"
+                  icon="pi pi-plus"
+                  label="Add Item"
                   [disabled]="isAddDisabled('Body')"
-                  class="px-4"
+                  severity="secondary"
                   (click)="addItem('Body')"
-                >
-                  <span>ADD ITEM</span>
-                </button>
+                ></button>
               </div>
             </div>
-          </mat-tab>
+          </p-tabPanel>
         }
-      </mat-tab-group>
+      </p-tabView>
     </section>
 
     <button
-      mat-flat-button
+      pButton
+      type="button"
       [disabled]="!endpoint"
-      color="primary"
-      class="mt-2"
+      label="Send Request"
       (click)="sendRequest()"
-    >
-      SEND REQUEST
-    </button>
+    ></button>
     <div class="mt-6 w-full min-h-[5rem] rounded-lg bg-black/80 p-4">
       @if (loadingState) {
-        <mat-progress-spinner
-          class="mx-auto block"
-          color="accent"
-          mode="indeterminate"
-        ></mat-progress-spinner>
+        <p-progressSpinner
+          styleClass="mx-auto block"
+          strokeWidth="4"
+        ></p-progressSpinner>
       }
       @if (responseData) {
         <pre class="whitespace-pre-wrap text-green-400">{{ responseData }}</pre>
@@ -191,5 +180,5 @@
         <pre class="whitespace-pre-wrap text-red-400">{{ responseError }}</pre>
       }
     </div>
-  </mat-card-content>
-</mat-card>
+  </div>
+</p-card>

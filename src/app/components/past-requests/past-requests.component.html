@@ -1,8 +1,5 @@
-<mat-card class="w-full">
-  <mat-card-header>
-    <mat-card-title>Past Requests</mat-card-title>
-  </mat-card-header>
-  <mat-card-content class="space-y-3">
+<p-card header="Past Requests" class="w-full">
+  <div class="space-y-3">
     @for (request of pastRequests; track request) {
       <div
         class="cursor-pointer rounded-lg border p-3 opacity-90 transition hover:opacity-100"
@@ -11,7 +8,8 @@
           'border-green-500 bg-green-500/10': request.method === 'POST'
         }"
         (click)="load(request)"
-        matTooltip="Click to load this Request"
+        pTooltip="Click to load this Request"
+        tooltipPosition="top"
       >
         <div class="flex items-stretch gap-3">
           <div
@@ -29,5 +27,5 @@
         </div>
       </div>
     }
-  </mat-card-content>
-</mat-card>
+  </div>
+</p-card>

@@ -1,13 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
-import { MatTabsModule } from '@angular/material/tabs';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { DropdownModule } from 'primeng/dropdown';
+import { InputTextModule } from 'primeng/inputtext';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { TabViewModule } from 'primeng/tabview';
 import { MainService } from 'src/app/services/main.service';
 
 @Component({
@@ -17,13 +16,12 @@ import { MainService } from 'src/app/services/main.service';
       CommonModule,
       FormsModule,
       ReactiveFormsModule,
-      MatButtonModule,
-      MatCardModule,
-      MatFormFieldModule,
-      MatInputModule,
-      MatProgressSpinnerModule,
-      MatSelectModule,
-      MatTabsModule,
+      ButtonModule,
+      CardModule,
+      DropdownModule,
+      InputTextModule,
+      ProgressSpinnerModule,
+      TabViewModule,
     ],
     templateUrl: './api-params.component.html',
     styleUrls: ['./api-params.component.css']
@@ -36,13 +34,14 @@ export class ApiParamsComponent implements OnInit {
 
   endpoint: string;
   selectedRequestMethod: string;
-  readonly requestMethods: Array<string>;
+  readonly requestMethods: Array<{ label: string; value: string }>;
   responseData: any;
   responseError: any;
   savedRequestCount: number;
   requestBody: any;
   requestBodyDataTypes: any;
-  readonly availableDataTypes: any;
+  readonly availableDataTypes: Array<{ label: string; value: string }>;
+  readonly booleanOptions: Array<{ label: string; value: string }>;
   requestHeaders: any;
   endpointError: string;
   loadingState: boolean;
@@ -51,13 +50,17 @@ export class ApiParamsComponent implements OnInit {
     this.endpoint = '';
     this.selectedRequestMethod = 'GET';
     this.requestMethods = [
-      'GET',
-      'POST'
+      { label: 'GET', value: 'GET' },
+      { label: 'POST', value: 'POST' }
     ];
     this.availableDataTypes = [
-      'String',
-      'Number',
-      'Boolean'
+      { label: 'String', value: 'String' },
+      { label: 'Number', value: 'Number' },
+      { label: 'Boolean', value: 'Boolean' }
+    ];
+    this.booleanOptions = [
+      { label: 'True', value: 'true' },
+      { label: 'False', value: 'false' }
     ];
     this.requestBody = [{ key: '', value: '' }];
     this.requestBodyDataTypes = [''];

@@ -2,12 +2,113 @@
 @tailwind components;
 @tailwind utilities;
 
-/* You can add global styles to this file, and also import other style files */
+:root {
+  color-scheme: dark;
+}
 
-* {
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background-color: #020617;
+  color: #e2e8f0;
   font-family: "Open Sans", sans-serif;
 }
 
-html {
-  @apply bg-gray-950;
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+app-root {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.p-card {
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #e2e8f0;
+}
+
+.p-card .p-card-title,
+.p-card .p-card-subtitle {
+  color: inherit;
+}
+
+.p-card .p-card-content {
+  padding: 1.5rem;
+}
+
+.p-button {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.p-button:not(.p-button-outlined):not(.p-button-text) {
+  border: none;
+}
+
+.p-button.p-button-danger,
+.p-button.p-button-danger:enabled:hover {
+  background: #dc2626;
+  color: #f8fafc;
+}
+
+.p-button.p-button-secondary,
+.p-button.p-button-secondary:enabled:hover {
+  background: rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+.p-tabview {
+  border-radius: 0.75rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.p-tabview .p-tabview-nav {
+  background: transparent;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  background: transparent;
+  color: #cbd5f5;
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+.p-dropdown,
+.p-inputtext {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #e2e8f0;
+}
+
+.p-dropdown-panel,
+.p-dropdown-items {
+  background: rgba(15, 23, 42, 0.95);
+  color: #e2e8f0;
+}
+
+.p-dropdown-items .p-dropdown-item.p-highlight {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+}
+
+.p-tooltip .p-tooltip-text {
+  background: rgba(15, 23, 42, 0.95);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.p-progress-spinner-circle {
+  stroke: #38bdf8 !important;
 }
