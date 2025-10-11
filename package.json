@@ -6,7 +6,7 @@
     "@angular/compiler": "^17.3.12",
     "@angular/core": "^17.3.12",
     "@angular/forms": "^17.3.12",
-    "@angular/material": "^16.2.0",
+    "@angular/material": "^17.3.10",
     "@angular/platform-browser": "^17.3.12",
     "@angular/platform-browser-dynamic": "^17.3.12",
     "@angular/router": "^17.3.12",
@@ -28,6 +28,6 @@
     "karma-jasmine": "5.1.0",
     "karma-jasmine-html-reporter": "1.7.0",
     "tslib": "^2.8.1",
-    "typescript": "~5.4.5"
+    "typescript": "~5.2"
   }
 }
