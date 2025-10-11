@@ -4,14 +4,14 @@ import { FormsModule } from "@angular/forms";
 import { BrowserModule } from "@angular/platform-browser";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 
-import { MatButtonModule } from "@Angular/material/button";
-import { MatCardModule } from "@Angular/material/card";
-import { MatFormFieldModule } from "@Angular/material/form-field";
-import { MatInputModule } from "@Angular/material/input";
-import { MatProgressSpinnerModule } from "@Angular/material/progress-spinner";
-import { MatSelectModule } from "@Angular/material/select";
-import { MatTabsModule } from "@Angular/material/tabs";
-import { MatTooltipModule } from "@Angular/material/tooltip";
+import { MatButtonModule } from "@angular/material/button";
+import { MatCardModule } from "@angular/material/card";
+import { MatFormFieldModule } from "@angular/material/form-field";
+import { MatInputModule } from "@angular/material/input";
+import { MatProgressSpinnerModule } from "@angular/material/progress-spinner";
+import { MatSelectModule } from "@angular/material/select";
+import { MatTabsModule } from "@angular/material/tabs";
+import { MatTooltipModule } from "@angular/material/tooltip";
 
 import { AppRoutingModule } from "./app-routing.module";
 
