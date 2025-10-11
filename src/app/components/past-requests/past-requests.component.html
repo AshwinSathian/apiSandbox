@@ -1,31 +1,66 @@
-<p-card header="Past Requests" class="w-full">
+<p-card header="Request History" class="w-full">
   <div class="space-y-3">
-    @for (request of pastRequests; track request) {
-      <div
-        class="cursor-pointer rounded-lg border p-3 opacity-90 transition hover:opacity-100"
-        [ngClass]="{
-          'border-blue-500 bg-blue-500/10': request.method === 'GET',
-          'border-green-500 bg-green-500/10': request.method === 'POST'
-        }"
-        (click)="load(request)"
-        pTooltip="Click to load this Request"
-        tooltipPosition="top"
-      >
-        <div class="flex items-stretch gap-3">
-          <div
-            class="flex w-20 items-center justify-center rounded-md font-mono text-sm font-bold uppercase text-white"
-            [ngClass]="{
-              'bg-blue-600': request.method === 'GET',
-              'bg-green-600': request.method === 'POST'
-            }"
-          >
-            {{ request.method }}
-          </div>
-          <div class="flex-1 overflow-hidden font-mono text-sm text-white">
-            {{ request.endpoint }}
+    @if (loading) {
+      <div class="flex items-center justify-center py-6">
+        <p-progressSpinner strokeWidth="4"></p-progressSpinner>
+      </div>
+    } @else if (!pastRequests.length) {
+      <div class="rounded-lg border border-dashed border-slate-600 bg-slate-900/40 p-6 text-center text-sm text-slate-300">
+        No requests recorded yet. Run a request to see it listed here.
+      </div>
+    } @else {
+      @for (request of pastRequests; track trackById($index, request)) {
+        <div
+          class="cursor-pointer rounded-lg border border-slate-700/70 bg-slate-900/60 p-4 transition hover:border-sky-500 hover:bg-slate-900/80"
+          (click)="load(request)"
+          pTooltip="Click to load this request"
+          tooltipPosition="top"
+        >
+          <div class="flex items-start gap-3">
+            <div
+              class="flex h-8 min-w-[4.5rem] items-center justify-center rounded-md border border-slate-500/40 bg-slate-800 px-3 font-mono text-xs font-bold uppercase text-slate-100"
+              [ngClass]="{
+                'border-sky-400/60 text-sky-300': request.method === 'GET',
+                'border-emerald-400/60 text-emerald-300': request.method === 'POST'
+              }"
+            >
+              {{ request.method }}
+            </div>
+            <div class="flex-1 overflow-hidden">
+              <div class="flex items-start justify-between gap-3">
+                <p class="truncate font-mono text-sm text-slate-200">
+                  {{ request.url }}
+                </p>
+                <button
+                  pButton
+                  type="button"
+                  icon="pi pi-trash"
+                  severity="danger"
+                  class="h-9 w-9 shrink-0"
+                  pTooltip="Delete request"
+                  tooltipPosition="left"
+                  (click)="delete(request, $event)"
+                ></button>
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                @if (request.status !== undefined) {
+                  <span class="rounded bg-slate-800 px-2 py-1 font-semibold">
+                    Status: {{ request.status }}
+                  </span>
+                }
+                @if (request.durationMs !== undefined) {
+                  <span class="rounded bg-slate-800 px-2 py-1">
+                    {{ request.durationMs }} ms
+                  </span>
+                }
+                <span class="rounded bg-slate-800 px-2 py-1">
+                  {{ request.createdAt | date: 'short' }}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      }
     }
   </div>
 </p-card>

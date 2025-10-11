@@ -1,12 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { SelectModule } from 'primeng/select';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TabsModule } from 'primeng/tabs';
+import { PastRequest } from '../../models/history.models';
+import { IdbService } from '../../data/idb.service';
 import { MainService } from 'src/app/services/main.service';
 
 @Component({
@@ -28,8 +31,6 @@ import { MainService } from 'src/app/services/main.service';
 })
 export class ApiParamsComponent implements OnInit {
 
-  @Input() openIDBrequest: any;
-  @Input() indexedDB: any;
   @Output() newRequest = new EventEmitter();
 
   endpoint: string;
@@ -37,7 +38,6 @@ export class ApiParamsComponent implements OnInit {
   readonly requestMethods: Array<{ label: string; value: string }>;
   responseData: any;
   responseError: any;
-  savedRequestCount: number;
   requestBody: any;
   requestBodyDataTypes: any;
   readonly availableDataTypes: Array<{ label: string; value: string }>;
@@ -47,7 +47,10 @@ export class ApiParamsComponent implements OnInit {
   loadingState: boolean;
   activeTab: string;
 
-  constructor(private _mainService: MainService) {
+  constructor(
+    private _mainService: MainService,
+    private _idbService: IdbService
+  ) {
     this.endpoint = '';
     this.selectedRequestMethod = 'GET';
     this.requestMethods = [
@@ -117,81 +120,19 @@ export class ApiParamsComponent implements OnInit {
     context.splice(index, 1);
   }
 
-  saveRequest(requestType: string) {
-    const requestObject = {
-      endpoint: this.endpoint,
-      method: this.selectedRequestMethod,
-      headers: this.constructObject('Headers')
-    };
-    if (requestType === 'POST') {
-      requestObject['body'] = this.constructObject('Body');
-    }
-    const transaction = this.indexedDB.transaction('pastRequests', 'readwrite');
-
-    const pastRequestsStore = transaction.objectStore('pastRequests');
-    pastRequestsStore.add(requestObject);
-  }
-
-  loadPastRequest(request: any) {
+  loadPastRequest(request: PastRequest) {
     this.onRequestMethodChange(request.method);
-    this.endpoint = request.endpoint;
+    this.endpoint = request.url;
     this.requestHeaders = this.deconstructObject(request.headers, 'Headers');
-    if (request.method === 'POST') {
-      this.requestBody = this.deconstructObject(request.body, 'Body');
+    if (request.body && typeof request.body === 'object') {
+      this.requestBodyDataTypes = [];
+      this.requestBody = this.deconstructObject(request.body as Record<string, unknown>, 'Body');
       this.activeTab = 'body';
     } else {
       this.requestBody = [{ key: '', value: '' }];
       this.requestBodyDataTypes = [''];
       this.activeTab = 'headers';
     }
-  }
-
-  deconstructObject(object: any, type: string) {
-    const objectArray = [];
-
-    switch (type) {
-      case 'Body': {
-        Object.keys(object).forEach((objKey, index) => {
-          this.requestBodyDataTypes[index] = 'String';
-          const obj = { key: objKey, value: '' };
-          objectArray.push(obj);
-        });
-        break;
-      }
-      case 'Headers': {
-        Object.keys(object).forEach(objKey => {
-          const obj = { key: objKey, value: object[objKey] };
-          objectArray.push(obj);
-        });
-        break;
-      }
-    }
-
-    return objectArray;
-  }
-
-  validateUrl(text: string) {
-    // tslint:disable-next-line: max-line-length
-    const urlRegExp = /^(http:\/\/www\.|https:\/\/www\.|http:\/\/|https:\/\/)?[a-z0-9]+([\-\.]{1}[a-z0-9]+)*\.[a-z]{2,5}(:[0-9]{1,5})?(\/.*)?$/gm;
-    return urlRegExp.test(text);
-  }
-
-  constructObject(ctx: string) {
-    let context;
-    if (ctx === 'Body') {
-      context = this.requestBody;
-    } else if (ctx === 'Headers') {
-      context = this.requestHeaders;
-    }
-
-    let constructedObject = {};
-    constructedObject
-      = context
-        .reduce((object, item) => {
-          object[item.key] = item.value;
-          return object;
-        }, {});
-    return constructedObject;
   }
 
   sendRequest() {
@@ -208,58 +149,84 @@ export class ApiParamsComponent implements OnInit {
       return;
     }
 
-    this.requestBody.forEach((item, index) => {
-      if (this.requestBodyDataTypes[index] === 'Number') {
-        item = Number(item);
-      }
-    });
+    const requestHeaders = this.buildHeaders();
+    const requestBody = this.buildBody();
+    const method = this.selectedRequestMethod as PastRequest['method'];
+    const endpoint = this.endpoint.trim();
+    const startedAt = performance.now();
+    const createdAt = Date.now();
 
     this.loadingState = true;
-    switch (this.selectedRequestMethod) {
+    switch (method) {
       case 'GET': {
-        this._mainService.sendGetRequest(
-          this.endpoint,
-          this.constructObject('Headers')
-        ).subscribe(
-          data => {
-            this.loadingState = false;
-            this.responseData = JSON.stringify(data, undefined, 4);
-          },
-          error => {
-            this.loadingState = false;
-            this.responseError = JSON.stringify(error, undefined, 4);
-          }
-        );
+        this._mainService.sendGetRequest(endpoint, requestHeaders)
+          .subscribe({
+            next: async response => {
+              this.loadingState = false;
+              this.responseData = this.stringifyPayload(response.body);
+              await this.persistHistory({
+                method,
+                url: endpoint,
+                headers: requestHeaders,
+                createdAt,
+                status: response.status,
+                durationMs: Math.round(performance.now() - startedAt)
+              });
+              this.resetForm();
+            },
+            error: async (error: HttpErrorResponse) => {
+              this.loadingState = false;
+              this.responseError = this.stringifyPayload(error.error ?? error.message);
+              await this.persistHistory({
+                method,
+                url: endpoint,
+                headers: requestHeaders,
+                createdAt,
+                status: error.status,
+                durationMs: Math.round(performance.now() - startedAt),
+                error: this.extractError(error)
+              });
+              this.resetForm();
+            }
+          });
         break;
       }
       case 'POST': {
-        this._mainService.sendPostRequest(
-          this.endpoint,
-          this.constructObject('Body'),
-          this.constructObject('Headers')
-        ).subscribe(
-          data => {
-            this.loadingState = false;
-            this.responseData = JSON.stringify(data, undefined, 4);
-          },
-          error => {
-            this.loadingState = false;
-            this.responseError = JSON.stringify(error, undefined, 4);
-          }
-        );
+        this._mainService.sendPostRequest(endpoint, requestBody ?? {}, requestHeaders)
+          .subscribe({
+            next: async response => {
+              this.loadingState = false;
+              this.responseData = this.stringifyPayload(response.body);
+              await this.persistHistory({
+                method,
+                url: endpoint,
+                headers: requestHeaders,
+                body: requestBody,
+                createdAt,
+                status: response.status,
+                durationMs: Math.round(performance.now() - startedAt)
+              });
+              this.resetForm();
+            },
+            error: async (error: HttpErrorResponse) => {
+              this.loadingState = false;
+              this.responseError = this.stringifyPayload(error.error ?? error.message);
+              await this.persistHistory({
+                method,
+                url: endpoint,
+                headers: requestHeaders,
+                body: requestBody,
+                createdAt,
+                status: error.status,
+                durationMs: Math.round(performance.now() - startedAt),
+                error: this.extractError(error)
+              });
+              this.resetForm();
+            }
+          });
         break;
       }
     }
-
-    this.saveRequest(this.selectedRequestMethod);
-    this.newRequest.emit();
-
-    this.onRequestMethodChange('GET');
-    this.endpoint = '';
-    this.requestBody = [{ key: '', value: '' }];
-    this.requestBodyDataTypes = [''];
-    this.requestHeaders = [{ key: 'Content-Type', value: 'application/json' }];
-    this.endpointError = '';
   }
 
   onRequestMethodChange(method: string) {
@@ -269,5 +236,109 @@ export class ApiParamsComponent implements OnInit {
       this.requestBody = [{ key: '', value: '' }];
       this.requestBodyDataTypes = [''];
     }
+  }
+
+  private buildHeaders(): Record<string, string> {
+    return this.requestHeaders.reduce((acc, item) => {
+      const key = (item?.key ?? '').trim();
+      if (!key) {
+        return acc;
+      }
+      acc[key] = item.value ?? '';
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  private buildBody(): Record<string, unknown> | undefined {
+    const body = this.requestBody.reduce((acc, item, index) => {
+      const key = (item?.key ?? '').trim();
+      if (!key) {
+        return acc;
+      }
+      const type = this.requestBodyDataTypes[index];
+      let value: unknown = item.value;
+
+      if (type === 'Number') {
+        const numeric = Number(item.value);
+        value = Number.isNaN(numeric) ? item.value : numeric;
+      } else if (type === 'Boolean') {
+        value = item.value === 'true';
+      }
+
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, unknown>);
+
+    return Object.keys(body).length ? body : undefined;
+  }
+
+  private stringifyPayload(payload: unknown): string {
+    try {
+      if (payload === null || payload === undefined) {
+        return '';
+      }
+      if (typeof payload === 'string') {
+        return payload;
+      }
+      return JSON.stringify(payload, undefined, 4);
+    } catch {
+      return String(payload);
+    }
+  }
+
+  private validateUrl(text: string): boolean {
+    const urlRegExp = /^(https?:\/\/)?[a-z0-9]+([\-\.][a-z0-9]+)*\.[a-z]{2,5}(:\d{1,5})?(\/.*)?$/i;
+    return urlRegExp.test(text);
+  }
+
+  private extractError(error: HttpErrorResponse): string {
+    if (error.message) {
+      return error.message;
+    }
+    return 'Unknown error';
+  }
+
+  private async persistHistory(entry: PastRequest): Promise<void> {
+    await this._idbService.add(entry);
+    this.newRequest.emit();
+  }
+
+  private resetForm(): void {
+    this.onRequestMethodChange('GET');
+    this.endpoint = '';
+    this.requestBody = [{ key: '', value: '' }];
+    this.requestBodyDataTypes = [''];
+    this.requestHeaders = [{ key: 'Content-Type', value: 'application/json' }];
+    this.endpointError = '';
+  }
+
+  private deconstructObject(object: Record<string, unknown>, type: string) {
+    const objectArray = [];
+
+    switch (type) {
+      case 'Body': {
+        Object.entries(object).forEach(([objKey, objValue], index) => {
+          let dataType = 'String';
+          if (typeof objValue === 'number') {
+            dataType = 'Number';
+          } else if (typeof objValue === 'boolean') {
+            dataType = 'Boolean';
+          }
+          this.requestBodyDataTypes[index] = dataType;
+          const obj = { key: objKey, value: dataType === 'Boolean' ? String(objValue) : objValue as string };
+          objectArray.push(obj);
+        });
+        break;
+      }
+      case 'Headers': {
+        Object.entries(object).forEach(([objKey, objValue]) => {
+          const obj = { key: objKey, value: String(objValue ?? '') };
+          objectArray.push(obj);
+        });
+        break;
+      }
+    }
+
+    return objectArray;
   }
 }

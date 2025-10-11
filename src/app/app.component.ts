@@ -3,6 +3,8 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { ApiParamsComponent } from './components/api-params/api-params.component';
 import { PastRequestsComponent } from './components/past-requests/past-requests.component';
+import { IdbService } from './data/idb.service';
+import { PastRequest, PastRequestKey } from './models/history.models';
 
 @Component({
     selector: 'app-root',
@@ -18,63 +20,49 @@ import { PastRequestsComponent } from './components/past-requests/past-requests.
 })
 export class AppComponent implements OnInit {
 
-  @ViewChild(ApiParamsComponent, { static: true }) apiParams: ApiParamsComponent;
+  @ViewChild(ApiParamsComponent, { static: true }) apiParams!: ApiParamsComponent;
 
-  hasIndexedDB: boolean;
-  indexedDB: any;
-  openIDBrequest: any;
-  idbStore: any;
-  pastRequests: any;
+  pastRequests: PastRequest[];
+  historyLoading: boolean;
 
-  constructor() {
-    this.hasIndexedDB = false;
+  constructor(private readonly idbService: IdbService) {
     this.pastRequests = [];
+    this.historyLoading = false;
   }
 
-  ngOnInit() {
-    this.openIndexedDB();
+  ngOnInit(): void {
+    this.initializeHistory();
   }
 
-  loadRequestHandler(request: any) {
+  loadRequestHandler(request: PastRequest) {
     this.apiParams.loadPastRequest(request);
   }
 
-  openIndexedDB() {
-    this.openIDBrequest = window.indexedDB.open('savedRequests', 1);
-
-    this.openIDBrequest.onsuccess = (event: any) => {
-      this.indexedDB = event.target.result;
-      this.hasIndexedDB = true;
-
-      this.fetchPastRequests();
-    };
-
-    this.openIDBrequest.onerror = (event: any) => {
-        this.hasIndexedDB = false;
-    };
-
-    this.openIDBrequest.onupgradeneeded = (event: any) => {
-      this.indexedDB = event.target.result;
-      this.idbStore = this.indexedDB
-        .createObjectStore('pastRequests', { keyPath: '_id', autoIncrement: true });
-    };
+  async refreshPastRequests(): Promise<void> {
+    this.historyLoading = true;
+    try {
+      this.pastRequests = await this.idbService.getLatest();
+    } finally {
+      this.historyLoading = false;
+    }
   }
 
-  fetchPastRequests() {
-    const transaction = this.indexedDB.transaction('pastRequests', 'readwrite');
-
-    const pastRequestsStore = transaction.objectStore('pastRequests');
-    pastRequestsStore.getAll().onsuccess = (evt: any) => {
-      this.pastRequests = evt.target.result;
-    };
+  async clearPastRequests(): Promise<void> {
+    await this.idbService.clear();
+    await this.refreshPastRequests();
   }
 
-  clearPastRequests() {
-    const transaction = this.indexedDB.transaction('pastRequests', 'readwrite');
+  async deletePastRequest(id: PastRequestKey): Promise<void> {
+    await this.idbService.delete(id);
+    await this.refreshPastRequests();
+  }
 
-    const pastRequestsStore = transaction.objectStore('pastRequests');
-    pastRequestsStore.clear().onsuccess = (evt: any) => {
-      this.pastRequests = [];
-    };
+  trackByRequestId(_index: number, request: PastRequest): PastRequestKey | undefined {
+    return request.id;
+  }
+
+  private async initializeHistory(): Promise<void> {
+    await this.idbService.init();
+    await this.refreshPastRequests();
   }
 }

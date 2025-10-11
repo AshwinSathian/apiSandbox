@@ -13,6 +13,7 @@ body {
   background-color: #020617;
   color: #e2e8f0;
   font-family: "Open Sans", sans-serif;
+  text-transform: uppercase;
 }
 
 body {
@@ -83,7 +84,7 @@ app-root {
   color: #cbd5f5;
 }
 
-.p-tab[data-p-active='true'] {
+.p-tab[data-p-active="true"] {
   color: #38bdf8;
 }
 
