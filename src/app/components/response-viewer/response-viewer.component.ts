@@ -9,6 +9,7 @@ import {
   SimpleChanges,
   signal,
 } from "@angular/core";
+import { FormsModule } from "@angular/forms";
 import { TabsModule } from "primeng/tabs";
 import { SkeletonModule } from "primeng/skeleton";
 import { TooltipModule } from "primeng/tooltip";
@@ -34,7 +35,14 @@ interface TimingBar {
 @Component({
   selector: "app-response-viewer",
   standalone: true,
-  imports: [CommonModule, TabsModule, SkeletonModule, TooltipModule, JsonEditorComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    TabsModule,
+    SkeletonModule,
+    TooltipModule,
+    JsonEditorComponent,
+  ],
   templateUrl: "./response-viewer.component.html",
 })
 export class ResponseViewerComponent implements OnChanges {

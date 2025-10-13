@@ -2,14 +2,39 @@ import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { signal } from "@angular/core";
 import { ResponseViewerComponent } from "./response-viewer.component";
 import { ResponseInspection } from "../../shared/inspect/response-inspector.service";
+import { JsonWorkerService } from "../../shared/json-worker/json-worker.service";
+
+class JsonWorkerServiceStub {
+  parsePretty = jasmine
+    .createSpy("parsePretty")
+    .and.callFake(async (input: string, indent = 4) => {
+      try {
+        return JSON.stringify(JSON.parse(input), null, indent);
+      } catch {
+        return input;
+      }
+    });
+  minify = jasmine
+    .createSpy("minify")
+    .and.callFake(async (input: string) => input);
+  search = jasmine
+    .createSpy("search")
+    .and.callFake(async (_input: string, _query: string) => ({
+      count: 0,
+      excerpts: [],
+    }));
+}
 
 describe("ResponseViewerComponent", () => {
   let component: ResponseViewerComponent;
   let fixture: ComponentFixture<ResponseViewerComponent>;
 
   beforeEach(async () => {
+    const jsonWorkerStub = new JsonWorkerServiceStub();
+
     await TestBed.configureTestingModule({
       imports: [ResponseViewerComponent],
+      providers: [{ provide: JsonWorkerService, useValue: jsonWorkerStub }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(ResponseViewerComponent);
@@ -56,4 +81,3 @@ describe("ResponseViewerComponent", () => {
     expect(component.hasGranularTimings()).toBeTrue();
   });
 });
-
