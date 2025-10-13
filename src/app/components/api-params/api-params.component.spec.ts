@@ -116,6 +116,59 @@ describe('ApiParamsComponent', () => {
 
   }));
 
+  it('should send PUT requests with body payload', fakeAsync(() => {
+    const mockCreatedAt = 1_810_000_000_000;
+    spyOn(Date, 'now').and.returnValue(mockCreatedAt);
+    spyOn(performance, 'now').and.returnValues(3000, 3185);
+
+    component.onRequestMethodChange('PUT');
+    component.endpoint = 'https://example.com/items/42';
+    component.requestBody = [{ key: 'name', value: 'Widget' }];
+    component.requestBodyDataTypes = ['String'];
+    component.requestHeaders = [{ key: 'X-Trace', value: 'abc123' }];
+
+    component.sendRequest();
+
+    const req = httpMock.expectOne('https://example.com/items/42');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ name: 'Widget' });
+    expect(req.request.headers.get('X-Trace')).toBe('abc123');
+    req.flush({ updated: true }, { status: 200, statusText: 'OK' });
+
+    flushMicrotasks();
+
+    expect(component.responseData).toContain('updated');
+    const history = idbService.add.calls.mostRecent().args[0] as PastRequest;
+    expect(history.method).toBe('PUT');
+    expect(history.body).toEqual({ name: 'Widget' });
+    expect(component.activeTab).toBe('headers');
+  }));
+
+  it('should handle DELETE requests without body', fakeAsync(() => {
+    const mockCreatedAt = 1_820_000_000_000;
+    spyOn(Date, 'now').and.returnValue(mockCreatedAt);
+    spyOn(performance, 'now').and.returnValues(4000, 4150);
+
+    component.onRequestMethodChange('DELETE');
+    component.endpoint = 'https://example.com/items/99';
+    component.requestHeaders = [{ key: 'Authorization', value: 'Bearer xyz' }];
+
+    component.sendRequest();
+
+    const req = httpMock.expectOne('https://example.com/items/99');
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.body).toBeNull();
+    req.flush(null, { status: 204, statusText: 'No Content' });
+
+    flushMicrotasks();
+
+    expect(idbService.add).toHaveBeenCalled();
+    const stored = idbService.add.calls.mostRecent().args[0] as PastRequest;
+    expect(stored.method).toBe('DELETE');
+    expect(stored.body).toBeUndefined();
+    expect(component.activeTab).toBe('headers');
+  }));
+
   it('should populate form when loading past requests', () => {
     const stored: PastRequest = {
       id: 1,

@@ -25,7 +25,6 @@ import { PastRequest, PastRequestKey } from "../../models/history.models";
   ],
   templateUrl: "./past-requests.component.html",
   styleUrls: ["./past-requests.component.css"],
-  providers: [ConfirmationService],
 })
 export class PastRequestsComponent {
   @Input() pastRequests: PastRequest[] = [];

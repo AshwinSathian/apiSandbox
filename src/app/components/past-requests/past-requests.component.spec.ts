@@ -3,7 +3,7 @@ import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { PastRequestsComponent } from './past-requests.component';
 import { PastRequest } from '../../models/history.models';
 import { ConfirmationService } from 'primeng/api';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmPopupModule } from 'primeng/confirmpopup';
 
 describe('PastRequestsComponent', () => {
   let component: PastRequestsComponent;
@@ -12,7 +12,7 @@ describe('PastRequestsComponent', () => {
   beforeEach(async () => {
     const confirmationSpy = jasmine.createSpyObj<ConfirmationService>('ConfirmationService', ['confirm']);
     await TestBed.configureTestingModule({
-      imports: [PastRequestsComponent, ConfirmDialogModule],
+      imports: [PastRequestsComponent, ConfirmPopupModule],
       providers: [provideNoopAnimations(), { provide: ConfirmationService, useValue: confirmationSpy }],
     }).compileComponents();
   });

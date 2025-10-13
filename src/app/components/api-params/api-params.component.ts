@@ -39,8 +39,13 @@ export class ApiParamsComponent implements OnInit {
   @Output() newRequest = new EventEmitter();
 
   endpoint: string;
-  selectedRequestMethod: string;
-  readonly requestMethods: Array<{ label: string; value: string }>;
+  selectedRequestMethod: PastRequest["method"];
+  readonly requestMethods: Array<{ label: string; value: PastRequest["method"] }>;
+  private readonly bodyCapableMethods = new Set<PastRequest["method"]>([
+    "POST",
+    "PUT",
+    "PATCH",
+  ]);
   responseData: any;
   responseError: any;
   requestBody: any;
@@ -51,7 +56,7 @@ export class ApiParamsComponent implements OnInit {
   endpointError: string;
   loadingState: boolean;
   activeTab: string;
-  mobileActiveIndices: number[];
+  mobileActivePanels: string[];
 
   constructor(
     private _mainService: MainService,
@@ -62,6 +67,11 @@ export class ApiParamsComponent implements OnInit {
     this.requestMethods = [
       { label: "GET", value: "GET" },
       { label: "POST", value: "POST" },
+      { label: "PUT", value: "PUT" },
+      { label: "PATCH", value: "PATCH" },
+      { label: "DELETE", value: "DELETE" },
+      { label: "HEAD", value: "HEAD" },
+      { label: "OPTIONS", value: "OPTIONS" },
     ];
     this.availableDataTypes = [
       { label: "String", value: "String" },
@@ -78,7 +88,7 @@ export class ApiParamsComponent implements OnInit {
     this.endpointError = "";
     this.loadingState = false;
     this.activeTab = "headers";
-    this.mobileActiveIndices = [0];
+    this.mobileActivePanels = ["headers"];
     this.syncMobilePanelsFromActiveTab();
   }
 
@@ -139,7 +149,7 @@ export class ApiParamsComponent implements OnInit {
         request.body as Record<string, unknown>,
         "Body"
       );
-      this.activeTab = "body";
+      this.activeTab = this.isBodyMethod(request.method) ? "body" : "headers";
     } else {
       this.requestBody = [{ key: "", value: "" }];
       this.requestBodyDataTypes = [""];
@@ -163,92 +173,61 @@ export class ApiParamsComponent implements OnInit {
     }
 
     const requestHeaders = this.buildHeaders();
-    const requestBody = this.buildBody();
-    const method = this.selectedRequestMethod as PastRequest["method"];
+    const method = this.selectedRequestMethod;
+    const usesBody = this.isBodyMethod(method);
+    const requestBody = usesBody ? this.buildBody() : undefined;
+    const transportBody = usesBody ? requestBody ?? {} : undefined;
     const endpoint = this.endpoint.trim();
     const startedAt = performance.now();
     const createdAt = Date.now();
 
     this.loadingState = true;
-    switch (method) {
-      case "GET": {
-        this._mainService.sendGetRequest(endpoint, requestHeaders).subscribe({
-          next: async (response) => {
-            this.loadingState = false;
-            this.responseData = this.stringifyPayload(response.body);
-            await this.persistHistory({
-              method,
-              url: endpoint,
-              headers: requestHeaders,
-              createdAt,
-              status: response.status,
-              durationMs: Math.round(performance.now() - startedAt),
-            });
-            this.resetForm();
-          },
-          error: async (error: HttpErrorResponse) => {
-            this.loadingState = false;
-            this.responseError = this.stringifyPayload(
-              error.error ?? error.message
-            );
-            await this.persistHistory({
-              method,
-              url: endpoint,
-              headers: requestHeaders,
-              createdAt,
-              status: error.status,
-              durationMs: Math.round(performance.now() - startedAt),
-              error: this.extractError(error),
-            });
-            this.resetForm();
-          },
-        });
-        break;
-      }
-      case "POST": {
-        this._mainService
-          .sendPostRequest(endpoint, requestBody ?? {}, requestHeaders)
-          .subscribe({
-            next: async (response) => {
-              this.loadingState = false;
-              this.responseData = this.stringifyPayload(response.body);
-              await this.persistHistory({
-                method,
-                url: endpoint,
-                headers: requestHeaders,
-                body: requestBody,
-                createdAt,
-                status: response.status,
-                durationMs: Math.round(performance.now() - startedAt),
-              });
-              this.resetForm();
-            },
-            error: async (error: HttpErrorResponse) => {
-              this.loadingState = false;
-              this.responseError = this.stringifyPayload(
-                error.error ?? error.message
-              );
-              await this.persistHistory({
-                method,
-                url: endpoint,
-                headers: requestHeaders,
-                body: requestBody,
-                createdAt,
-                status: error.status,
-                durationMs: Math.round(performance.now() - startedAt),
-                error: this.extractError(error),
-              });
-              this.resetForm();
-            },
-          });
-        break;
-      }
-    }
+    this._mainService
+      .sendRequest(method, endpoint, requestHeaders, transportBody)
+      .subscribe({
+        next: async (response) => {
+          this.loadingState = false;
+          this.responseData = this.stringifyPayload(response.body);
+          const history: PastRequest = {
+            method,
+            url: endpoint,
+            headers: requestHeaders,
+            createdAt,
+            status: response.status,
+            durationMs: Math.round(performance.now() - startedAt),
+          };
+          if (usesBody) {
+            history.body = requestBody;
+          }
+          await this.persistHistory(history);
+          this.resetForm();
+        },
+        error: async (error: HttpErrorResponse) => {
+          this.loadingState = false;
+          this.responseError = this.stringifyPayload(
+            error.error ?? error.message
+          );
+          const history: PastRequest = {
+            method,
+            url: endpoint,
+            headers: requestHeaders,
+            createdAt,
+            status: error.status,
+            durationMs: Math.round(performance.now() - startedAt),
+            error: this.extractError(error),
+          };
+          if (usesBody) {
+            history.body = requestBody;
+          }
+          await this.persistHistory(history);
+          this.resetForm();
+        },
+      });
   }
 
-  onRequestMethodChange(method: string) {
+  onRequestMethodChange(method: PastRequest["method"]) {
     this.selectedRequestMethod = method;
-    if (method !== "POST") {
+    if (!this.isBodyMethod(method)) {
       this.activeTab = "headers";
       this.requestBody = [{ key: "", value: "" }];
       this.requestBodyDataTypes = [""];
@@ -366,13 +345,18 @@ export class ApiParamsComponent implements OnInit {
     return objectArray;
   }
 
-  onMobileIndexChange(index: number | number[]): void {
-    const indices = Array.isArray(index) ? index : [index];
-    this.mobileActiveIndices = indices.length ? [...indices] : [0];
+  onMobileIndexChange(value: string | number | (string | number)[] | null): void {
+    const panels = Array.isArray(value)
+      ? value.map(String)
+      : value != null
+      ? [String(value)]
+      : [];
+
+    this.mobileActivePanels = panels.length ? [...panels] : ["headers"];
 
     if (
-      this.selectedRequestMethod === "POST" &&
-      this.mobileActiveIndices.includes(1)
+      this.isBodyMethod(this.selectedRequestMethod) &&
+      this.mobileActivePanels.includes("body")
     ) {
       this.activeTab = "body";
     } else {
@@ -381,11 +365,18 @@ export class ApiParamsComponent implements OnInit {
   }
 
   private syncMobilePanelsFromActiveTab(): void {
-    if (this.selectedRequestMethod === "POST") {
-      this.mobileActiveIndices =
-        this.activeTab === "body" ? [1] : [0];
+    if (this.isBodyMethod(this.selectedRequestMethod)) {
+      this.mobileActivePanels =
+        this.activeTab === "body" ? ["body"] : ["headers"];
     } else {
-      this.mobileActiveIndices = [0];
+      this.mobileActivePanels = ["headers"];
     }
+  }
+
+  isBodyMethod(method?: PastRequest["method"]): boolean {
+    if (!method) {
+      return false;
+    }
+    return this.bodyCapableMethods.has(method);
   }
 }

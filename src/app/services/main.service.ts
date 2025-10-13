@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { PastRequest } from '../models/history.models';
 
 @Injectable({
   providedIn: 'root'
@@ -9,23 +10,26 @@ export class MainService {
 
   constructor(private _httpClient: HttpClient) {}
 
-  sendGetRequest(url: string, headers: Record<string, string>): Observable<HttpResponse<unknown>> {
-    const httpHeaders = new HttpHeaders(headers);
-    return this._httpClient.get(url, {
-      headers: httpHeaders,
-      observe: 'response'
-    });
-  }
-
-  sendPostRequest(
+  sendRequest(
+    method: PastRequest['method'],
     url: string,
-    requestBody: unknown,
-    headers: Record<string, string>
+    headers: Record<string, string>,
+    body?: unknown
   ): Observable<HttpResponse<unknown>> {
     const httpHeaders = new HttpHeaders(headers);
-    return this._httpClient.post(url, requestBody, {
+    const options: {
+      headers: HttpHeaders;
+      observe: 'response';
+      body?: unknown;
+    } = {
       headers: httpHeaders,
       observe: 'response'
-    });
+    };
+
+    if (body !== undefined) {
+      options.body = body;
+    }
+
+    return this._httpClient.request(method, url, options);
   }
 }

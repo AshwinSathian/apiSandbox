@@ -28,7 +28,7 @@ describe('MainService', () => {
   });
 
   it('should perform GET requests with provided headers', (done) => {
-    service.sendGetRequest('https://example.com/data', { Accept: 'application/json' })
+    service.sendRequest('GET', 'https://example.com/data', { Accept: 'application/json' })
       .subscribe(response => {
         expect(response.status).toBe(200);
         expect(response.body).toEqual({ ok: true });
@@ -41,21 +41,37 @@ describe('MainService', () => {
     req.flush({ ok: true }, { status: 200, statusText: 'OK' });
   });
 
-  it('should surface errors for POST requests', (done) => {
-    service.sendPostRequest('https://example.com/create', { name: 'Jane' }, { 'Content-Type': 'application/json' })
+  it('should send body payloads for mutating methods', (done) => {
+    service.sendRequest(
+      'PATCH',
+      'https://example.com/profile',
+      { 'Content-Type': 'application/json' },
+      { displayName: 'Jane' }
+    ).subscribe(response => {
+      expect(response.status).toBe(204);
+      done();
+    }, done.fail);
+
+    const req = httpMock.expectOne('https://example.com/profile');
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ displayName: 'Jane' });
+    expect(req.request.headers.get('Content-Type')).toBe('application/json');
+    req.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
+  it('should surface errors for DELETE requests', (done) => {
+    service.sendRequest('DELETE', 'https://example.com/resource/1', { Authorization: 'Bearer token' })
       .subscribe({
         next: () => done.fail('Expected error response'),
         error: error => {
-          expect(error.status).toBe(500);
-          expect(error.error).toEqual({ message: 'boom' });
+          expect(error.status).toBe(404);
           done();
         }
       });
 
-    const req = httpMock.expectOne('https://example.com/create');
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ name: 'Jane' });
-    expect(req.request.headers.get('Content-Type')).toBe('application/json');
-    req.flush({ message: 'boom' }, { status: 500, statusText: 'Server Error' });
+    const req = httpMock.expectOne('https://example.com/resource/1');
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.headers.get('Authorization')).toBe('Bearer token');
+    req.flush({ message: 'missing' }, { status: 404, statusText: 'Not Found' });
   });
 });
