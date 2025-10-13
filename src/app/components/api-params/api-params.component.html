@@ -138,18 +138,31 @@
           class="hidden grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide md:grid"
         >
           <div class="md:col-span-4">Key</div>
-          <div class="md:col-span-4">Value</div>
           <div class="md:col-span-3">Data Type</div>
+          <div class="md:col-span-4">Value</div>
           <div class="md:col-span-1 text-center"></div>
         </div>
         @for (item of requestBody; track item; let index = $index) {
-        <div class="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4">
+        <div
+          class="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4"
+        >
           <div class="w-full md:col-span-4">
             <input
               pInputText
               class="requestBodyItem w-full"
               [(ngModel)]="item.key"
             />
+          </div>
+          <div class="w-full md:col-span-3">
+            <p-select
+              class="w-full"
+              [options]="availableDataTypes"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              placeholder="Data Type"
+              [(ngModel)]="requestBodyDataTypes[index]"
+            ></p-select>
           </div>
           <div class="w-full md:col-span-4">
             @if (requestBodyDataTypes[index] !== 'Boolean') {
@@ -176,17 +189,6 @@
               [(ngModel)]="item.value"
             ></p-select>
             }
-          </div>
-          <div class="w-full md:col-span-3">
-            <p-select
-              class="w-full"
-              [options]="availableDataTypes"
-              optionLabel="label"
-              optionValue="value"
-              appendTo="body"
-              placeholder="Data Type"
-              [(ngModel)]="requestBodyDataTypes[index]"
-            ></p-select>
           </div>
           <div class="hidden md:flex justify-end md:col-span-1">
             <button
