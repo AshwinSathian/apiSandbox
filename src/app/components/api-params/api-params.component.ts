@@ -2,18 +2,24 @@ import { CommonModule } from "@angular/common";
 import { HttpErrorResponse } from "@angular/common/http";
 import { Component, EventEmitter, OnInit, Output } from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
+import { AccordionModule } from "primeng/accordion";
 import { ButtonModule } from "primeng/button";
 import { CardModule } from "primeng/card";
-import { AccordionModule } from "primeng/accordion";
 import { FloatLabelModule } from "primeng/floatlabel";
 import { InputTextModule } from "primeng/inputtext";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
 import { SelectModule } from "primeng/select";
+import { SelectButtonModule } from "primeng/selectbutton";
 import { SkeletonModule } from "primeng/skeleton";
 import { TabsModule } from "primeng/tabs";
 import { MainService } from "src/app/services/main.service";
 import { IdbService } from "../../data/idb.service";
 import { PastRequest } from "../../models/history.models";
+import { JsonEditorComponent } from "../json-editor/json-editor.component";
+import { ApiParamsBasicComponent } from "./basic-editor/basic-editor.component";
+
+type EditorMode = "basic" | "json";
+type ContextType = "Body" | "Headers";
 
 @Component({
   selector: "app-api-params",
@@ -26,14 +32,16 @@ import { PastRequest } from "../../models/history.models";
     CardModule,
     AccordionModule,
     SelectModule,
+    SelectButtonModule,
     InputTextModule,
     ProgressSpinnerModule,
     TabsModule,
     FloatLabelModule,
     SkeletonModule,
+    JsonEditorComponent,
+    ApiParamsBasicComponent,
   ],
   templateUrl: "./api-params.component.html",
-  styleUrls: ["./api-params.component.css"],
 })
 export class ApiParamsComponent implements OnInit {
   @Output() newRequest = new EventEmitter();
@@ -46,13 +54,32 @@ export class ApiParamsComponent implements OnInit {
     "PUT",
     "PATCH",
   ]);
+  private readonly defaultHeaderKey = "Content-Type";
+  private readonly defaultHeaderValue = "application/json";
+  readonly editorModeOptions: Array<{ label: string; value: EditorMode }>;
+  editorMode: EditorMode;
+  headersJsonText: string;
+  bodyJsonText: string;
+  headersJsonValid: boolean;
+  bodyJsonValid: boolean;
+  readonly addItemFn: (ctx: ContextType) => void;
+  readonly removeItemFn: (index: number, ctx: ContextType) => void;
+  readonly isAddDisabledFn: (ctx: ContextType) => boolean;
+  readonly disableHeaderItemFn: (
+    item: { key: string; value: unknown },
+    index: number
+  ) => boolean;
+  readonly disableBodyItemFn: (
+    item: { key: string; value: unknown },
+    index: number
+  ) => boolean;
   responseData: any;
   responseError: any;
-  requestBody: any;
-  requestBodyDataTypes: any;
+  requestBody: Array<{ key: string; value: unknown }>;
+  requestBodyDataTypes: string[];
   readonly availableDataTypes: Array<{ label: string; value: string }>;
   readonly booleanOptions: Array<{ label: string; value: string }>;
-  requestHeaders: any;
+  requestHeaders: Array<{ key: string; value: string }>;
   endpointError: string;
   loadingState: boolean;
   activeTab: string;
@@ -84,17 +111,37 @@ export class ApiParamsComponent implements OnInit {
     ];
     this.requestBody = [{ key: "", value: "" }];
     this.requestBodyDataTypes = [""];
-    this.requestHeaders = [{ key: "Content-Type", value: "application/json" }];
+    this.requestHeaders = [
+      { key: this.defaultHeaderKey, value: this.defaultHeaderValue },
+    ];
     this.endpointError = "";
     this.loadingState = false;
     this.activeTab = "headers";
     this.mobileActivePanels = ["headers"];
+    this.editorModeOptions = [
+      { label: "Basic", value: "basic" },
+      { label: "JSON", value: "json" },
+    ];
+    this.editorMode = "basic";
+    this.headersJsonText = "";
+    this.bodyJsonText = "{}";
+    this.headersJsonValid = true;
+    this.bodyJsonValid = true;
+    this.addItemFn = (ctx: ContextType) => this.addItem(ctx);
+    this.removeItemFn = (index: number, ctx: ContextType) =>
+      this.removeItem(index, ctx);
+    this.isAddDisabledFn = (ctx: ContextType) => this.isAddDisabled(ctx);
+    this.disableHeaderItemFn = (
+      item: { key: string; value: unknown },
+      _index: number
+    ) => item.key === this.defaultHeaderKey;
+    this.disableBodyItemFn = () => false;
     this.syncMobilePanelsFromActiveTab();
   }
 
   ngOnInit() {}
 
-  addItem(ctx: string) {
+  addItem(ctx: ContextType) {
     let context;
     if (ctx === "Body") {
       context = this.requestBody;
@@ -108,7 +155,7 @@ export class ApiParamsComponent implements OnInit {
     }
   }
 
-  isAddDisabled(ctx: string) {
+  isAddDisabled(ctx: ContextType) {
     let context;
     if (ctx === "Body") {
       context = this.requestBody;
@@ -128,7 +175,7 @@ export class ApiParamsComponent implements OnInit {
     return false;
   }
 
-  removeItem(index: number, ctx: string) {
+  removeItem(index: number, ctx: ContextType) {
     let context;
     if (ctx === "Body") {
       context = this.requestBody;
@@ -156,6 +203,9 @@ export class ApiParamsComponent implements OnInit {
       this.activeTab = "headers";
     }
     this.syncMobilePanelsFromActiveTab();
+    if (this.editorMode === "json") {
+      this.syncJsonEditorsFromState();
+    }
   }
 
   sendRequest() {
@@ -233,6 +283,9 @@ export class ApiParamsComponent implements OnInit {
       this.requestBodyDataTypes = [""];
     }
     this.syncMobilePanelsFromActiveTab();
+    if (this.editorMode === "json") {
+      this.syncJsonEditorsFromState();
+    }
   }
 
   private buildHeaders(): Record<string, string> {
@@ -306,9 +359,12 @@ export class ApiParamsComponent implements OnInit {
     this.endpoint = "";
     this.requestBody = [{ key: "", value: "" }];
     this.requestBodyDataTypes = [""];
-    this.requestHeaders = [{ key: "Content-Type", value: "application/json" }];
+    this.requestHeaders = [
+      { key: this.defaultHeaderKey, value: this.defaultHeaderValue },
+    ];
     this.endpointError = "";
     this.syncMobilePanelsFromActiveTab();
+    this.resetJsonEditors();
   }
 
   private deconstructObject(object: Record<string, unknown>, type: string) {
@@ -345,6 +401,49 @@ export class ApiParamsComponent implements OnInit {
     return objectArray;
   }
 
+  onEditorModeChange(mode: EditorMode): void {
+    this.editorMode = mode;
+    if (mode === "json") {
+      this.syncJsonEditorsFromState();
+    }
+  }
+
+  onActiveTabChange(tab: string): void {
+    this.activeTab = tab;
+    this.syncMobilePanelsFromActiveTab();
+  }
+
+  onHeadersJsonParsed(value: unknown): void {
+    if (!this.headersJsonValid) {
+      return;
+    }
+    if (value === undefined) {
+      this.requestHeaders = [
+        { key: this.defaultHeaderKey, value: this.defaultHeaderValue },
+      ];
+      return;
+    }
+    if (!this.isPlainObject(value)) {
+      return;
+    }
+    this.applyHeadersFromParsed(value);
+  }
+
+  onBodyJsonParsed(value: unknown): void {
+    if (!this.bodyJsonValid) {
+      return;
+    }
+    if (value === undefined) {
+      this.requestBody = [{ key: "", value: "" }];
+      this.requestBodyDataTypes = [""];
+      return;
+    }
+    if (!this.isPlainObject(value)) {
+      return;
+    }
+    this.applyBodyFromParsed(value);
+  }
+
   onMobileIndexChange(value: string | number | (string | number)[] | null): void {
     const panels = Array.isArray(value)
       ? value.map(String)
@@ -378,5 +477,79 @@ export class ApiParamsComponent implements OnInit {
       return false;
     }
     return this.bodyCapableMethods.has(method);
+  }
+
+  private syncJsonEditorsFromState(): void {
+    this.headersJsonText = this.stringifyPayload(this.buildHeaders());
+    const body = this.buildBody();
+    this.bodyJsonText = body ? this.stringifyPayload(body) : "{}";
+    this.headersJsonValid = true;
+    this.bodyJsonValid = true;
+  }
+
+  private resetJsonEditors(): void {
+    if (this.editorMode === "json") {
+      this.syncJsonEditorsFromState();
+    } else {
+      this.headersJsonText = "";
+      this.bodyJsonText = "{}";
+      this.headersJsonValid = true;
+      this.bodyJsonValid = true;
+    }
+  }
+
+  private applyHeadersFromParsed(parsed: Record<string, unknown>): void {
+    const headersMap = new Map<string, string>();
+    for (const [key, rawValue] of Object.entries(parsed)) {
+      const trimmedKey = key.trim();
+      if (!trimmedKey) {
+        continue;
+      }
+      headersMap.set(trimmedKey, String(rawValue ?? ""));
+    }
+
+    const existingContentType =
+      this.requestHeaders.find(
+        (header: { key: string }) => header.key === this.defaultHeaderKey
+      )?.value ?? this.defaultHeaderValue;
+
+    if (!headersMap.size || !headersMap.has(this.defaultHeaderKey)) {
+      headersMap.set(this.defaultHeaderKey, existingContentType);
+    }
+
+    const orderedEntries: Array<{ key: string; value: string }> = [];
+    if (headersMap.has(this.defaultHeaderKey)) {
+      const value = headersMap.get(this.defaultHeaderKey) ?? existingContentType;
+      orderedEntries.push({
+        key: this.defaultHeaderKey,
+        value,
+      });
+      headersMap.delete(this.defaultHeaderKey);
+    }
+
+    headersMap.forEach((value, key) => {
+      orderedEntries.push({ key, value });
+    });
+
+    this.requestHeaders = orderedEntries.length
+      ? orderedEntries
+      : [
+          { key: this.defaultHeaderKey, value: existingContentType },
+        ];
+  }
+
+  private applyBodyFromParsed(parsed: Record<string, unknown>): void {
+    this.requestBodyDataTypes = [];
+    const bodyArray = this.deconstructObject(parsed, "Body");
+    if (!bodyArray.length) {
+      this.requestBody = [{ key: "", value: "" }];
+      this.requestBodyDataTypes = [""];
+      return;
+    }
+    this.requestBody = bodyArray;
+  }
+
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
   }
 }

@@ -26,9 +26,20 @@
       </div>
     </div>
 
+    <div class="flex justify-end">
+      <p-selectButton
+        [options]="editorModeOptions"
+        optionLabel="label"
+        optionValue="value"
+        [(ngModel)]="editorMode"
+        (ngModelChange)="onEditorModeChange($event)"
+        [ngModelOptions]="{ standalone: true }"
+      ></p-selectButton>
+    </div>
+
     <section class="rounded-lg bg-slate-900/40 p-6">
       <div class="hidden md:block">
-        <p-tabs [(value)]="activeTab">
+        <p-tabs [value]="activeTab" (valueChange)="onActiveTabChange($event)">
           <p-tablist>
             <p-tab value="headers">
               <span class="uppercase">Headers</span>
@@ -41,11 +52,11 @@
           </p-tablist>
           <p-tabpanels>
             <p-tabpanel value="headers">
-              <ng-container [ngTemplateOutlet]="headersTemplate"></ng-container>
+              <ng-container *ngTemplateOutlet="headersContent"></ng-container>
             </p-tabpanel>
             @if (isBodyMethod(selectedRequestMethod)) {
             <p-tabpanel value="body">
-              <ng-container [ngTemplateOutlet]="bodyTemplate"></ng-container>
+              <ng-container *ngTemplateOutlet="bodyContent"></ng-container>
             </p-tabpanel>
             }
           </p-tabpanels>
@@ -61,171 +72,79 @@
             <ng-template pTemplate="header">
               <span class="uppercase">Headers</span>
             </ng-template>
-            <ng-container [ngTemplateOutlet]="headersTemplate"></ng-container>
+            <ng-container *ngTemplateOutlet="headersContent"></ng-container>
           </p-accordionpanel>
           @if (isBodyMethod(selectedRequestMethod)) {
           <p-accordionpanel value="body">
             <ng-template pTemplate="header">
               <span class="uppercase">Body</span>
             </ng-template>
-            <ng-container [ngTemplateOutlet]="bodyTemplate"></ng-container>
+            <ng-container *ngTemplateOutlet="bodyContent"></ng-container>
           </p-accordionpanel>
           }
         </p-accordion>
       </div>
     </section>
 
-    <ng-template #headersTemplate>
-      <div class="flex flex-col gap-2">
-        <div
-          class="hidden grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide md:grid"
-        >
-          <div class="md:col-span-5">Key</div>
-          <div class="md:col-span-6">Value</div>
-          <div class="md:col-span-1 text-center"></div>
-        </div>
-        @for (item of requestHeaders; track item; let index = $index) {
-        <div
-          class="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4"
-        >
-          <div class="w-full md:col-span-5">
-            <input
-              pInputText
-              [disabled]="item.key === 'Content-Type'"
-              class="requestBodyItem w-full"
-              [(ngModel)]="item.key"
-            />
-          </div>
-          <div class="w-full md:col-span-6">
-            <input
-              pInputText
-              [disabled]="item.key === 'Content-Type'"
-              class="requestBodyItem w-full"
-              [(ngModel)]="item.value"
-            />
-          </div>
-          <div class="flex justify-end md:block md:col-span-1 md:text-center">
-            <button
-              pButton
-              type="button"
-              text
-              icon="pi pi-times"
-              [disabled]="item.key === 'Content-Type'"
-              severity="danger"
-              (click)="removeItem(index, 'Headers')"
-            ></button>
-          </div>
-        </div>
+    <ng-template #headersContent>
+      @if (editorMode === 'basic') {
+      <app-api-params-basic
+        context="Headers"
+        [items]="requestHeaders"
+        [showDataTypes]="false"
+        [addLabel]="'Add Header'"
+        [isAddDisabled]="isAddDisabledFn"
+        [addItem]="addItemFn"
+        [removeItem]="removeItemFn"
+        [disableItem]="disableHeaderItemFn"
+      ></app-api-params-basic>
+      } @else {
+      <div class="space-y-2">
+        @if (!headersJsonValid) {
+        <small class="text-xs uppercase text-red-400">Invalid JSON</small>
         }
-        <div class="pt-2">
-          <button
-            pButton
-            type="button"
-            icon="pi pi-plus"
-            label="Add Header"
-            class="uppercase"
-            [disabled]="isAddDisabled('Headers')"
-            severity="secondary"
-            (click)="addItem('Headers')"
-          ></button>
-        </div>
+        <app-json-editor
+          name="headersJson"
+          [(ngModel)]="headersJsonText"
+          [ngModelOptions]="{ standalone: true }"
+          (jsonValidChange)="headersJsonValid = $event"
+          (parsedChange)="onHeadersJsonParsed($event)"
+          [height]="280"
+        ></app-json-editor>
       </div>
+      }
     </ng-template>
 
-    <ng-template #bodyTemplate>
-      <div class="flex flex-col gap-2">
-        <div
-          class="hidden grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide md:grid"
-        >
-          <div class="md:col-span-4">Key</div>
-          <div class="md:col-span-3">Data Type</div>
-          <div class="md:col-span-4">Value</div>
-          <div class="md:col-span-1 text-center"></div>
-        </div>
-        @for (item of requestBody; track item; let index = $index) {
-        <div
-          class="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4"
-        >
-          <div class="w-full md:col-span-4">
-            <input
-              pInputText
-              class="requestBodyItem w-full"
-              [(ngModel)]="item.key"
-            />
-          </div>
-          <div class="w-full md:col-span-3">
-            <p-select
-              class="w-full"
-              [options]="availableDataTypes"
-              optionLabel="label"
-              optionValue="value"
-              appendTo="body"
-              placeholder="Data Type"
-              [(ngModel)]="requestBodyDataTypes[index]"
-            ></p-select>
-          </div>
-          <div class="w-full md:col-span-4">
-            @if (requestBodyDataTypes[index] !== 'Boolean') {
-            <input
-              pInputText
-              [type]="
-                requestBodyDataTypes[index]
-                  ? requestBodyDataTypes[index].toLowerCase()
-                  : 'text'
-              "
-              [disabled]="requestBodyDataTypes[index] === ''"
-              class="requestBodyItem w-full"
-              [(ngModel)]="item.value"
-            />
-            } @if (requestBodyDataTypes[index] === 'Boolean') {
-            <p-select
-              class="w-full"
-              [disabled]="requestBodyDataTypes[index] === ''"
-              [options]="booleanOptions"
-              optionLabel="label"
-              optionValue="value"
-              appendTo="body"
-              placeholder="Select"
-              [(ngModel)]="item.value"
-            ></p-select>
-            }
-          </div>
-          <div class="hidden md:flex justify-end md:col-span-1">
-            <button
-              pButton
-              text
-              type="button"
-              icon="pi pi-times"
-              severity="danger"
-              (click)="removeItem(index, 'Body')"
-            ></button>
-          </div>
-          <div class="md:hidden col-span-1">
-            <button
-              pButton
-              text
-              type="button"
-              icon="pi pi-times"
-              label="Remove"
-              severity="danger"
-              (click)="removeItem(index, 'Body')"
-            ></button>
-          </div>
-        </div>
+    <ng-template #bodyContent>
+      @if (editorMode === 'basic') {
+      <app-api-params-basic
+        context="Body"
+        [items]="requestBody"
+        [dataTypes]="requestBodyDataTypes"
+        [availableDataTypes]="availableDataTypes"
+        [booleanOptions]="booleanOptions"
+        [showDataTypes]="true"
+        [addLabel]="'Add Item'"
+        [isAddDisabled]="isAddDisabledFn"
+        [addItem]="addItemFn"
+        [removeItem]="removeItemFn"
+        [disableItem]="disableBodyItemFn"
+      ></app-api-params-basic>
+      } @else {
+      <div class="space-y-2">
+        @if (!bodyJsonValid) {
+        <small class="text-xs uppercase text-red-400">Invalid JSON</small>
         }
-        <div class="my-4">
-          <button
-            pButton
-            type="button"
-            icon="pi pi-plus"
-            label="Add Item"
-            class="uppercase"
-            [disabled]="isAddDisabled('Body')"
-            severity="secondary"
-            (click)="addItem('Body')"
-          ></button>
-        </div>
+        <app-json-editor
+          name="bodyJson"
+          [(ngModel)]="bodyJsonText"
+          [ngModelOptions]="{ standalone: true }"
+          (jsonValidChange)="bodyJsonValid = $event"
+          (parsedChange)="onBodyJsonParsed($event)"
+          [height]="360"
+        ></app-json-editor>
       </div>
+      }
     </ng-template>
 
     <button
