@@ -37,7 +37,7 @@
     </div>
     } @else if (!pastRequests.length) {
     <div
-      class="text-center text-sm text-slate-500 uppercase tracking-wide w-full p-2"
+      class="text-center text-sm text-slate-400 uppercase tracking-wide w-full p-2"
     >
       No requests recorded yet. Run a request to see it listed here.
     </div>
@@ -49,8 +49,13 @@
         <span
           class="cursor-pointer truncate font-mono text-sm text-slate-300"
           [ngClass]="{
-            'text-blue-300': request.method === 'GET',
-            'text-emerald-300': request.method === 'POST'
+            'text-blue-400': request.method === 'GET',
+            'text-emerald-400': request.method === 'POST',
+            'text-amber-400': request.method === 'PUT',
+            'text-red-400': request.method === 'DELETE',
+            'text-purple-400': request.method === 'PATCH',
+            'text-sky-400': request.method === 'OPTIONS',
+            'text-slate-400': request.method === 'HEAD'
           }"
           (click)="load(request)"
           (mouseenter)="detailsPopover.show($event)"
@@ -118,8 +123,13 @@
               <span
                 class="text-xs font-semibold text-slate-300 truncate line-clamp-1"
                 [ngClass]="{
-                  'text-blue-300': request.method === 'GET',
-                  'text-emerald-300': request.method === 'POST'
+                  'text-blue-400': request.method === 'GET',
+                  'text-emerald-400': request.method === 'POST',
+                  'text-amber-400': request.method === 'PUT',
+                  'text-red-400': request.method === 'DELETE',
+                  'text-purple-400': request.method === 'PATCH',
+                  'text-sky-400': request.method === 'OPTIONS',
+                  'text-slate-400': request.method === 'HEAD'
                 }"
               >
                 {{ request.url }}
@@ -145,8 +155,13 @@
       <span
         class="font-semibold font-mono text-sm text-slate-300 uppercase tracking-wider"
         [ngClass]="{
-          'text-blue-300': request.method === 'GET',
-          'text-emerald-300': request.method === 'POST'
+          'text-blue-400': request.method === 'GET',
+          'text-emerald-400': request.method === 'POST',
+          'text-amber-400': request.method === 'PUT',
+          'text-red-400': request.method === 'DELETE',
+          'text-purple-400': request.method === 'PATCH',
+          'text-sky-400': request.method === 'OPTIONS',
+          'text-slate-400': request.method === 'HEAD'
         }"
       >
         {{ request.method }}
@@ -163,7 +178,7 @@
       </div>
       } @if (request.durationMs !== undefined) {
       <div class="flex items-center gap-1 p-2">
-        <span class="material-symbols-outlined text-base text-emerald-300">
+        <span class="material-symbols-outlined text-base text-emerald-400">
           schedule
         </span>
         <span>{{ request.durationMs }} ms</span>
