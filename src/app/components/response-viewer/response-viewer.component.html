@@ -6,253 +6,298 @@
     <p-skeleton height="8rem" borderRadius="1rem"></p-skeleton>
   </div>
   } @else {
-  <p-tabs [value]="activeTab" (valueChange)="onTabChange($event)">
-    <p-tablist>
-      <p-tab value="body">
-        <span class="uppercase">Body</span>
-      </p-tab>
-      <p-tab value="headers">
-        <span class="uppercase">Headers</span>
-      </p-tab>
-      <p-tab value="timings">
-        <span class="uppercase">Timings</span>
-      </p-tab>
-    </p-tablist>
-    <p-tabpanels>
-      <p-tabpanel value="body">
-        <div class="space-y-4 text-sm text-slate-200">
-          @if (!isError) { @if (responseBodyIsJson) {
-          <app-json-editor
-            name="responseJson"
-            [readOnly]="true"
-            [ngModel]="formattedResponseBody"
-            [ngModelOptions]="{ standalone: true }"
-            [height]="260"
-            (ngModelChange)="onReadOnlyBodyChange($event)"
-          ></app-json-editor>
-          } @else {
-          <pre
-            class="min-h-[180px] whitespace-pre-wrap rounded-lg bg-black/60 p-4 text-sm text-emerald-300"
-            >{{ responseData || "No body returned." }}</pre
-          >
-          } } @else { @if (responseBodyIsJson) {
-          <app-json-editor
-            name="responseErrorJson"
-            [readOnly]="true"
-            [ngModel]="formattedResponseError"
-            [ngModelOptions]="{ standalone: true }"
-            [height]="260"
-            (ngModelChange)="onReadOnlyErrorChange($event)"
-          ></app-json-editor>
-          } @else {
-          <pre
-            class="min-h-[180px] whitespace-pre-wrap rounded-lg bg-black/60 p-4 text-sm text-red-300"
-            >{{ responseError || "No body returned." }}</pre
-          >
-          } }
-        </div>
-      </p-tabpanel>
-      <p-tabpanel value="headers">
-        <div class="space-y-4 text-sm text-slate-200">
-          <div
-            class="flex items-center justify-between rounded-lg bg-black/60 p-3"
-          >
-            <div class="text-xs uppercase text-slate-400">Status</div>
-            <div
-              class="text-base font-semibold"
-              [ngClass]="{
-                'text-emerald-400': !isError,
-                'text-red-400': isError
-              }"
+  <div class="space-y-4">
+    <p-tabs [value]="activeTab" (valueChange)="onTabChange($event)">
+      <div class="flex items-center justify-between">
+        <p-tablist>
+          <p-tab value="body">
+            <span class="uppercase">Body</span>
+          </p-tab>
+          <p-tab value="headers">
+            <span class="uppercase">Headers</span>
+          </p-tab>
+          <p-tab value="timings">
+            <span class="uppercase">Timings</span>
+          </p-tab>
+        </p-tablist>
+
+        @if (canExport) {
+        <div #exportMenuRoot class="flex items-center justify-end">
+          <div class="relative">
+            <button
+              type="button"
+              class="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-wide text-slate-200 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+              (click)="toggleExportMenu($event)"
             >
-              @if (responseStatusCode !== undefined) {
-              {{ responseStatusCode }}
-              } @else { — }
-              <span class="ml-2 text-sm text-slate-300">
-                {{ responseStatusText || "" }}
-              </span>
-            </div>
-          </div>
-          <div
-            class="max-h-64 overflow-y-auto rounded-lg border border-white/10"
-          >
-            @if (responseHeaders.length) {
-            <table class="w-full text-left text-xs">
-              <tbody>
-                @for (header of responseHeaders; track header.name) {
-                <tr class="border-b border-white/5 last:border-b-0">
-                  <th
-                    class="w-32 px-3 py-2 text-xs font-semibold uppercase text-slate-400"
-                  >
-                    {{ header.name }}
-                  </th>
-                  <td class="px-3 py-2 text-slate-200">
-                    {{ header.value || "—" }}
-                  </td>
-                </tr>
-                }
-              </tbody>
-            </table>
-            } @else {
-            <div class="p-4 text-xs text-slate-400">
-              No response headers available.
-            </div>
-            }
-          </div>
-        </div>
-      </p-tabpanel>
-      <p-tabpanel value="timings">
-        @let inspectionData = inspectionValue; @if (!inspectionData) {
-        <p class="text-xs text-slate-400">
-          Timing data will appear after you send a request.
-        </p>
-        } @else {
-        <div class="space-y-5 text-sm text-slate-200">
-          <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-lg bg-black/60 p-3">
-              <div
-                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+              <span class="pi pi-upload text-[11px]"></span>
+              <span>Export</span>
+              <span class="pi pi-chevron-down text-[10px] opacity-70"></span>
+            </button>
+            @if (exportMenuOpen) {
+            <div
+              class="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-white/10 bg-black/90 shadow-xl backdrop-blur"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-200 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                (click)="copyAsHar()"
               >
-                <span>Duration</span>
-                <span
-                  class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                  [pTooltip]="timingSummaryTooltips.duration"
-                  tooltipPosition="top"
-                ></span>
-              </div>
-              <div class="mt-1 text-base font-semibold text-slate-100">
-                {{ formatMs(inspectionData.duration) }}
-              </div>
-            </div>
-            <div class="rounded-lg bg-black/60 p-3">
-              <div
-                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+                <span class="pi pi-copy text-[11px]"></span>
+                <span>Copy as HAR</span>
+              </button>
+              <button
+                type="button"
+                class="flex w-full items-center gap-2 border-t border-white/5 px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-200 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
+                (click)="saveNdjson()"
               >
-                <span>Transfer Size</span>
-                <span
-                  class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                  [pTooltip]="timingSummaryTooltips.transferSize"
-                  tooltipPosition="top"
-                ></span>
-              </div>
-              <div class="mt-1 text-base font-semibold text-slate-100">
-                {{ formatBytes(inspectionData.sizes?.transferSize) }}
-              </div>
+                <span class="pi pi-download text-[11px]"></span>
+                <span>Save NDJSON</span>
+              </button>
             </div>
-            <div class="rounded-lg bg-black/60 p-3">
-              <div
-                class="flex items-center gap-2 text-xs uppercase text-slate-400"
-              >
-                <span>Encoded Body</span>
-                <span
-                  class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                  [pTooltip]="timingSummaryTooltips.encodedBodySize"
-                  tooltipPosition="top"
-                ></span>
-              </div>
-              <div class="mt-1 text-base font-semibold text-slate-100">
-                {{ formatBytes(inspectionData.sizes?.encodedBodySize) }}
-              </div>
-            </div>
-            <div class="rounded-lg bg-black/60 p-3">
-              <div
-                class="flex items-center gap-2 text-xs uppercase text-slate-400"
-              >
-                <span>Decoded Body</span>
-                <span
-                  class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                  [pTooltip]="timingSummaryTooltips.decodedBodySize"
-                  tooltipPosition="top"
-                ></span>
-              </div>
-              <div class="mt-1 text-base font-semibold text-slate-100">
-                {{ formatBytes(inspectionData.sizes?.decodedBodySize) }}
-              </div>
-            </div>
-          </div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <div
-                class="flex items-center gap-2 text-xs uppercase text-slate-400"
-              >
-                <span>Waterfall</span>
-                <span
-                  class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                  [pTooltip]="waterfallTooltip"
-                  tooltipPosition="top"
-                ></span>
-              </div>
-              @if (inspectionData.limitedByCors) {
-              <span class="text-xs text-amber-400">Limited by CORS timing</span>
-              }
-            </div>
-            @if (hasGranularTimings()) {
-            <div class="flex flex-col gap-3">
-              @for (phase of getTimingBars(); track phase.key) {
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400"
-                >
-                  <span class="truncate">{{ phase.label }}</span>
-                  @if (phase.tooltip) {
-                  <span
-                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                    [pTooltip]="phase.tooltip"
-                    tooltipPosition="top"
-                  ></span>
-                  }
-                </div>
-                <div class="relative h-4 flex-1 rounded-full bg-white/10">
-                  <div
-                    class="absolute left-0 top-0 h-4 rounded-full bg-emerald-500"
-                    [style.width.%]="phase.percent < 2 ? 2 : phase.percent"
-                    [attr.title]="formatMs(phase.duration)"
-                  ></div>
-                </div>
-                <span class="w-16 text-right text-xs text-slate-200">
-                  {{ formatMs(phase.duration) }}
-                </span>
-              </div>
-              }
-            </div>
-            } @else {
-            <div class="flex flex-col gap-3">
-              @for (bar of getFallbackBars(); track bar.label) {
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400"
-                >
-                  <span class="truncate">{{ bar.label }}</span>
-                  @if (bar.tooltip) {
-                  <span
-                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
-                    [pTooltip]="bar.tooltip"
-                    tooltipPosition="top"
-                  ></span>
-                  }
-                </div>
-                <div class="relative h-4 flex-1 rounded-full bg-white/10">
-                  <div
-                    class="absolute left-0 top-0 h-4 rounded-full bg-emerald-500"
-                    style="width: 100%"
-                    [attr.title]="formatMs(bar.duration)"
-                  ></div>
-                </div>
-                <span class="w-16 text-right text-xs text-slate-200">
-                  {{ formatMs(bar.duration) }}
-                </span>
-              </div>
-              }
-            </div>
-            <p class="text-xs text-slate-400">
-              Detailed phases are unavailable for this response.
-            </p>
             }
           </div>
         </div>
         }
-      </p-tabpanel>
-    </p-tabpanels>
-  </p-tabs>
+      </div>
+
+      <p-tabpanels>
+        <p-tabpanel value="body">
+          <div class="space-y-4 text-sm text-slate-200">
+            @if (!isError) { @if (responseBodyIsJson) {
+            <app-json-editor
+              name="responseJson"
+              [readOnly]="true"
+              [ngModel]="formattedResponseBody"
+              [ngModelOptions]="{ standalone: true }"
+              [height]="260"
+              (ngModelChange)="onReadOnlyBodyChange($event)"
+            ></app-json-editor>
+            } @else {
+            <pre
+              class="min-h-[180px] whitespace-pre-wrap rounded-lg bg-black/60 p-4 text-sm text-emerald-300"
+              >{{ responseData || "No body returned." }}</pre
+            >
+            } } @else { @if (responseBodyIsJson) {
+            <app-json-editor
+              name="responseErrorJson"
+              [readOnly]="true"
+              [ngModel]="formattedResponseError"
+              [ngModelOptions]="{ standalone: true }"
+              [height]="260"
+              (ngModelChange)="onReadOnlyErrorChange($event)"
+            ></app-json-editor>
+            } @else {
+            <pre
+              class="min-h-[180px] whitespace-pre-wrap rounded-lg bg-black/60 p-4 text-sm text-red-300"
+              >{{ responseError || "No body returned." }}</pre
+            >
+            } }
+          </div>
+        </p-tabpanel>
+        <p-tabpanel value="headers">
+          <div class="space-y-4 text-sm text-slate-200">
+            <div
+              class="flex items-center justify-between rounded-lg bg-black/60 p-3"
+            >
+              <div class="text-xs uppercase text-slate-400">Status</div>
+              <div
+                class="text-base font-semibold"
+                [ngClass]="{
+                  'text-emerald-400': !isError,
+                  'text-red-400': isError
+                }"
+              >
+                @if (responseStatusCode !== undefined) {
+                {{ responseStatusCode }}
+                } @else { — }
+                <span class="ml-2 text-sm text-slate-300">
+                  {{ responseStatusText || "" }}
+                </span>
+              </div>
+            </div>
+            <div
+              class="max-h-64 overflow-y-auto rounded-lg border border-white/10"
+            >
+              @if (responseHeaders.length) {
+              <table class="w-full text-left text-xs">
+                <tbody>
+                  @for (header of responseHeaders; track header.name) {
+                  <tr class="border-b border-white/5 last:border-b-0">
+                    <th
+                      class="w-32 px-3 py-2 text-xs font-semibold uppercase text-slate-400"
+                    >
+                      {{ header.name }}
+                    </th>
+                    <td class="px-3 py-2 text-slate-200">
+                      {{ header.value || "—" }}
+                    </td>
+                  </tr>
+                  }
+                </tbody>
+              </table>
+              } @else {
+              <div class="p-4 text-xs text-slate-400">
+                No response headers available.
+              </div>
+              }
+            </div>
+          </div>
+        </p-tabpanel>
+        <p-tabpanel value="timings">
+          @let inspectionData = inspectionValue; @if (!inspectionData) {
+          <p class="text-xs text-slate-400">
+            Timing data will appear after you send a request.
+          </p>
+          } @else {
+          <div class="space-y-5 text-sm text-slate-200">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div class="rounded-lg bg-black/60 p-3">
+                <div
+                  class="flex items-center gap-2 text-xs uppercase text-slate-400"
+                >
+                  <span>Duration</span>
+                  <span
+                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                    [pTooltip]="timingSummaryTooltips.duration"
+                    tooltipPosition="top"
+                  ></span>
+                </div>
+                <div class="mt-1 text-base font-semibold text-slate-100">
+                  {{ formatMs(inspectionData.duration) }}
+                </div>
+              </div>
+              <div class="rounded-lg bg-black/60 p-3">
+                <div
+                  class="flex items-center gap-2 text-xs uppercase text-slate-400"
+                >
+                  <span>Transfer Size</span>
+                  <span
+                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                    [pTooltip]="timingSummaryTooltips.transferSize"
+                    tooltipPosition="top"
+                  ></span>
+                </div>
+                <div class="mt-1 text-base font-semibold text-slate-100">
+                  {{ formatBytes(inspectionData.sizes?.transferSize) }}
+                </div>
+              </div>
+              <div class="rounded-lg bg-black/60 p-3">
+                <div
+                  class="flex items-center gap-2 text-xs uppercase text-slate-400"
+                >
+                  <span>Encoded Body</span>
+                  <span
+                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                    [pTooltip]="timingSummaryTooltips.encodedBodySize"
+                    tooltipPosition="top"
+                  ></span>
+                </div>
+                <div class="mt-1 text-base font-semibold text-slate-100">
+                  {{ formatBytes(inspectionData.sizes?.encodedBodySize) }}
+                </div>
+              </div>
+              <div class="rounded-lg bg-black/60 p-3">
+                <div
+                  class="flex items-center gap-2 text-xs uppercase text-slate-400"
+                >
+                  <span>Decoded Body</span>
+                  <span
+                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                    [pTooltip]="timingSummaryTooltips.decodedBodySize"
+                    tooltipPosition="top"
+                  ></span>
+                </div>
+                <div class="mt-1 text-base font-semibold text-slate-100">
+                  {{ formatBytes(inspectionData.sizes?.decodedBodySize) }}
+                </div>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div
+                  class="flex items-center gap-2 text-xs uppercase text-slate-400"
+                >
+                  <span>Waterfall</span>
+                  <span
+                    class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                    [pTooltip]="waterfallTooltip"
+                    tooltipPosition="top"
+                  ></span>
+                </div>
+                @if (inspectionData.limitedByCors) {
+                <span class="text-xs text-amber-400"
+                  >Limited by CORS timing</span
+                >
+                }
+              </div>
+              @if (hasGranularTimings()) {
+              <div class="flex flex-col gap-3">
+                @for (phase of getTimingBars(); track phase.key) {
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400"
+                  >
+                    <span class="truncate">{{ phase.label }}</span>
+                    @if (phase.tooltip) {
+                    <span
+                      class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                      [pTooltip]="phase.tooltip"
+                      tooltipPosition="top"
+                    ></span>
+                    }
+                  </div>
+                  <div class="relative h-4 flex-1 rounded-full bg-white/10">
+                    <div
+                      class="absolute left-0 top-0 h-4 rounded-full bg-emerald-500"
+                      [style.width.%]="phase.percent < 2 ? 2 : phase.percent"
+                      [attr.title]="formatMs(phase.duration)"
+                    ></div>
+                  </div>
+                  <span class="w-16 text-right text-xs text-slate-200">
+                    {{ formatMs(phase.duration) }}
+                  </span>
+                </div>
+                }
+              </div>
+              } @else {
+              <div class="flex flex-col gap-3">
+                @for (bar of getFallbackBars(); track bar.label) {
+                <div class="flex items-center gap-3">
+                  <div
+                    class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400"
+                  >
+                    <span class="truncate">{{ bar.label }}</span>
+                    @if (bar.tooltip) {
+                    <span
+                      class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
+                      [pTooltip]="bar.tooltip"
+                      tooltipPosition="top"
+                    ></span>
+                    }
+                  </div>
+                  <div class="relative h-4 flex-1 rounded-full bg-white/10">
+                    <div
+                      class="absolute left-0 top-0 h-4 rounded-full bg-emerald-500"
+                      style="width: 100%"
+                      [attr.title]="formatMs(bar.duration)"
+                    ></div>
+                  </div>
+                  <span class="w-16 text-right text-xs text-slate-200">
+                    {{ formatMs(bar.duration) }}
+                  </span>
+                </div>
+                }
+              </div>
+              <p class="text-xs text-slate-400">
+                Detailed phases are unavailable for this response.
+              </p>
+              }
+            </div>
+          </div>
+          }
+        </p-tabpanel>
+      </p-tabpanels>
+    </p-tabs>
+  </div>
   }
 </div>

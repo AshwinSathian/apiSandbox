@@ -27,7 +27,10 @@ import { IdbService } from "../../data/idb.service";
 import { PastRequest } from "../../models/history.models";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
 import { ApiParamsBasicComponent } from "./basic-editor/basic-editor.component";
-import { ResponseViewerComponent } from "../response-viewer/response-viewer.component";
+import {
+  ResponseExportContext,
+  ResponseViewerComponent,
+} from "../response-viewer/response-viewer.component";
 import {
   ResponseInspectorService,
   ResponseInspection,
@@ -99,6 +102,7 @@ export class ApiParamsComponent implements OnInit {
   responseTab: "body" | "headers" | "timings";
   responseContentLength?: number;
   readonly responseInspection: Signal<ResponseInspection | null>;
+  responseExportContext: ResponseExportContext | null;
   requestBody: Array<{ key: string; value: unknown }>;
   requestBodyDataTypes: string[];
   readonly availableDataTypes: Array<{ label: string; value: string }>;
@@ -162,6 +166,7 @@ export class ApiParamsComponent implements OnInit {
     this.responseContentLength = undefined;
     this.responseTab = "body";
     this.responseInspection = this._responseInspector.latest;
+    this.responseExportContext = null;
     this.addItemFn = (ctx: ContextType) => this.addItem(ctx);
     this.removeItemFn = (index: number, ctx: ContextType) =>
       this.removeItem(index, ctx);
@@ -266,6 +271,14 @@ export class ApiParamsComponent implements OnInit {
     const startedAt = performance.now();
     const createdAt = Date.now();
 
+    this.responseExportContext = {
+      id: requestId,
+      method,
+      url: endpoint,
+      headers: { ...requestHeaders },
+      body: transportBody,
+    };
+
     this._responseInspector.markRequest(requestId, endpoint);
     this.loadingState = true;
     this._mainService
@@ -327,6 +340,7 @@ export class ApiParamsComponent implements OnInit {
     this.responseIsError = false;
     this.responseContentLength = undefined;
     this.responseTab = "body";
+    this.responseExportContext = null;
   }
 
   private captureSuccessResponse(response: HttpResponse<unknown>): void {

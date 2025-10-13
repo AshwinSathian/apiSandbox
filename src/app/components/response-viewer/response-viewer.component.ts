@@ -1,12 +1,15 @@
 import { CommonModule } from "@angular/common";
 import {
   Component,
+  ElementRef,
   EventEmitter,
+  HostListener,
   Input,
   OnChanges,
   Output,
   Signal,
   SimpleChanges,
+  ViewChild,
   signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
@@ -16,6 +19,11 @@ import { TooltipModule } from "primeng/tooltip";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
 import { ResponseInspection } from "../../shared/inspect/response-inspector.service";
 import { JsonWorkerService } from "../../shared/json-worker/json-worker.service";
+import {
+  InspectorExportEntry,
+  toHar,
+  toNdjsonLine,
+} from "../../shared/inspect/export.util";
 
 type ResponseTab = "body" | "headers" | "timings";
 
@@ -30,6 +38,14 @@ interface TimingBar {
   duration: number;
   percent: number;
   tooltip?: string;
+}
+
+export interface ResponseExportContext {
+  id: string;
+  method: string;
+  url: string;
+  headers: Record<string, string>;
+  body?: unknown;
 }
 
 @Component({
@@ -56,6 +72,7 @@ export class ResponseViewerComponent implements OnChanges {
   @Input() isError = false;
   @Input() inspection?: Signal<ResponseInspection | null> | null;
   @Input() responseContentLength?: number;
+  @Input() exportContext: ResponseExportContext | null = null;
 
   private readonly fallbackInspection = signal<ResponseInspection | null>(null);
 
@@ -143,10 +160,21 @@ export class ResponseViewerComponent implements OnChanges {
   private lastBodyResult: string | null = null;
   private lastErrorSource: string | null = null;
   private lastErrorResult: string | null = null;
+  exportMenuOpen = false;
+
+  @ViewChild("exportMenuRoot") exportMenuRef?: ElementRef<HTMLDivElement>;
 
   constructor(private readonly jsonWorker: JsonWorkerService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (
+      ("loading" in changes && changes["loading"]?.currentValue) ||
+      ("exportContext" in changes && !this.exportContext) ||
+      ("responseStatusCode" in changes && this.responseStatusCode === undefined)
+    ) {
+      this.exportMenuOpen = false;
+    }
+
     if (
       "responseData" in changes ||
       "responseError" in changes ||
@@ -174,7 +202,98 @@ export class ResponseViewerComponent implements OnChanges {
   }
 
   get formattedResponseError(): string {
-    return this.formattedError;
+   return this.formattedError;
+  }
+
+  get canExport(): boolean {
+    return !this.loading && !!this.exportContext && this.responseStatusCode !== undefined;
+  }
+
+  @HostListener("document:click", ["$event"])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.exportMenuOpen) {
+      return;
+    }
+    const host = this.exportMenuRef?.nativeElement;
+    if (!host) {
+      this.exportMenuOpen = false;
+      return;
+    }
+    if (!host.contains(event.target as Node)) {
+      this.exportMenuOpen = false;
+    }
+  }
+
+  @HostListener("document:keydown", ["$event"])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    if (!this.exportMenuOpen) {
+      return;
+    }
+    if (event.key === "Escape") {
+      this.exportMenuOpen = false;
+    }
+  }
+
+  toggleExportMenu(event: MouseEvent): void {
+    if (!this.canExport) {
+      return;
+    }
+    event.stopPropagation();
+    this.exportMenuOpen = !this.exportMenuOpen;
+  }
+
+  async copyAsHar(): Promise<void> {
+    const entry = this.buildExportEntry();
+    this.exportMenuOpen = false;
+    if (!entry) {
+      return;
+    }
+
+    const harText = JSON.stringify(toHar(entry), null, 2);
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(harText);
+        return;
+      }
+    } catch {
+      // Fallback to manual copy below.
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = harText;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.top = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    } catch {
+      console.warn("Failed to copy HAR to clipboard.");
+    }
+  }
+
+  saveNdjson(): void {
+    const entry = this.buildExportEntry();
+    this.exportMenuOpen = false;
+    if (!entry) {
+      return;
+    }
+
+    const ndjsonLine = toNdjsonLine(entry);
+    const blob = new Blob([ndjsonLine], { type: "text/plain" });
+    const started = entry.startedDateTime ?? new Date().toISOString();
+    const stamp = started.substring(0, 19).replace(/[-:]/g, "");
+    const link = document.createElement("a");
+    const href = URL.createObjectURL(blob);
+    link.href = href;
+    link.download = `api-sandbox-${stamp}.ndjson`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(href);
   }
 
   private prepareFormatting(): void {
@@ -314,6 +433,73 @@ export class ResponseViewerComponent implements OnChanges {
     return source();
   }
 
+  private buildExportEntry(): InspectorExportEntry | null {
+    const context = this.exportContext;
+    if (!context) {
+      return null;
+    }
+
+    const inspection = this.inspectionValue;
+    const url = context.url || inspection?.url || "";
+    const statusCode =
+      this.responseStatusCode !== undefined ? this.responseStatusCode : null;
+
+    if (!url || statusCode === null) {
+      return null;
+    }
+
+    const startedDateTime = inspection?.startEpoch
+      ? new Date(inspection.startEpoch).toISOString()
+      : new Date().toISOString();
+
+    const duration =
+      typeof inspection?.duration === "number" && Number.isFinite(inspection.duration)
+        ? inspection.duration
+        : Math.max(
+            0,
+            (inspection?.endTime ?? 0) - (inspection?.startTime ?? 0)
+          );
+
+    const entry: InspectorExportEntry = {
+      id: inspection?.id ?? context.id ?? this.createFallbackId(),
+      startedDateTime,
+      time: duration,
+      req: {
+        method: context.method,
+        url,
+        headers: normalizeHeaderRecord(context.headers),
+        body: context.body,
+      },
+      res: {
+        status: statusCode,
+        statusText: this.responseStatusText ?? "",
+        headers: this.buildResponseHeadersRecord(),
+        body: this.isError ? this.responseError : this.responseData,
+        sizes: inspection?.sizes,
+      },
+      phases: inspection?.phases,
+    };
+
+    return entry;
+  }
+
+  private buildResponseHeadersRecord(): Record<string, string> {
+    return this.responseHeaders.reduce<Record<string, string>>((acc, header) => {
+      if (!header?.name) {
+        return acc;
+      }
+      acc[header.name] = header.value ?? "";
+      return acc;
+    }, {});
+  }
+
+  private createFallbackId(): string {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+    return `export-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
   getTimingBars(): TimingBar[] {
     const inspection = this.inspectionValue;
     if (!inspection?.phases || !inspection.duration) {
@@ -387,4 +573,17 @@ export class ResponseViewerComponent implements OnChanges {
     const precision = size >= 100 ? 0 : size >= 10 ? 1 : 2;
     return `${size.toFixed(precision)} ${units[unitIndex]}`;
   }
+}
+
+function normalizeHeaderRecord(record: Record<string, string>): Record<string, string> {
+  return Object.entries(record ?? {}).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      if (!key) {
+        return acc;
+      }
+      acc[key] = value ?? "";
+      return acc;
+    },
+    {}
+  );
 }
