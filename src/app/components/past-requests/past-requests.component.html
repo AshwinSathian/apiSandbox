@@ -49,13 +49,13 @@
         <span
           class="cursor-pointer truncate font-mono text-sm text-slate-300"
           [ngClass]="{
-            'text-blue-400': request.method === 'GET',
-            'text-emerald-400': request.method === 'POST',
-            'text-amber-400': request.method === 'PUT',
-            'text-red-400': request.method === 'DELETE',
-            'text-purple-400': request.method === 'PATCH',
-            'text-sky-400': request.method === 'OPTIONS',
-            'text-slate-400': request.method === 'HEAD'
+            'text-[#61affe]': request.method === 'GET',
+            'text-[#49cc90]': request.method === 'POST',
+            'text-[#fca130]': request.method === 'PUT',
+            'text-[#f93e3e]': request.method === 'DELETE',
+            'text-[#50e3c2]': request.method === 'PATCH',
+            'text-[#0d5aa7]': request.method === 'OPTIONS',
+            'text-[#9012fe]': request.method === 'HEAD'
           }"
           (click)="load(request)"
           (mouseenter)="detailsPopover.show($event)"
@@ -123,13 +123,13 @@
               <span
                 class="text-xs font-semibold text-slate-300 truncate line-clamp-1"
                 [ngClass]="{
-                  'text-blue-400': request.method === 'GET',
-                  'text-emerald-400': request.method === 'POST',
-                  'text-amber-400': request.method === 'PUT',
-                  'text-red-400': request.method === 'DELETE',
-                  'text-purple-400': request.method === 'PATCH',
-                  'text-sky-400': request.method === 'OPTIONS',
-                  'text-slate-400': request.method === 'HEAD'
+                  'text-[#61affe]': request.method === 'GET',
+                  'text-[#49cc90]': request.method === 'POST',
+                  'text-[#fca130]': request.method === 'PUT',
+                  'text-[#f93e3e]': request.method === 'DELETE',
+                  'text-[#50e3c2]': request.method === 'PATCH',
+                  'text-[#0d5aa7]': request.method === 'OPTIONS',
+                  'text-[#9012fe]': request.method === 'HEAD'
                 }"
               >
                 {{ request.url }}
@@ -155,13 +155,13 @@
       <span
         class="font-semibold font-mono text-sm text-slate-300 uppercase tracking-wider"
         [ngClass]="{
-          'text-blue-400': request.method === 'GET',
-          'text-emerald-400': request.method === 'POST',
-          'text-amber-400': request.method === 'PUT',
-          'text-red-400': request.method === 'DELETE',
-          'text-purple-400': request.method === 'PATCH',
-          'text-sky-400': request.method === 'OPTIONS',
-          'text-slate-400': request.method === 'HEAD'
+          'text-[#61affe]': request.method === 'GET',
+          'text-[#49cc90]': request.method === 'POST',
+          'text-[#fca130]': request.method === 'PUT',
+          'text-[#f93e3e]': request.method === 'DELETE',
+          'text-[#50e3c2]': request.method === 'PATCH',
+          'text-[#0d5aa7]': request.method === 'OPTIONS',
+          'text-[#9012fe]': request.method === 'HEAD'
         }"
       >
         {{ request.method }}
