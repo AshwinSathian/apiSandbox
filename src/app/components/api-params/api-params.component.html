@@ -26,160 +26,222 @@
       </div>
     </div>
 
-    <section class="rounded-lg bg-slate-900/40 p-6">
-      <p-tabs [(value)]="activeTab">
-        <p-tablist>
-          <p-tab value="headers">
-            <span class="uppercase">Headers</span>
-          </p-tab>
+    <section class="rounded-lg bg-slate-900/40 p-2 md:p-6">
+      <div class="hidden md:block">
+        <p-tabs [(value)]="activeTab">
+          <p-tablist>
+            <p-tab value="headers">
+              <span class="uppercase">Headers</span>
+            </p-tab>
+            @if (selectedRequestMethod === 'POST') {
+            <p-tab value="body">
+              <span class="uppercase">Body</span>
+            </p-tab>
+            }
+          </p-tablist>
+          <p-tabpanels>
+            <p-tabpanel value="headers">
+              <ng-container [ngTemplateOutlet]="headersTemplate"></ng-container>
+            </p-tabpanel>
+            @if (selectedRequestMethod === 'POST') {
+            <p-tabpanel value="body">
+              <ng-container [ngTemplateOutlet]="bodyTemplate"></ng-container>
+            </p-tabpanel>
+            }
+          </p-tabpanels>
+        </p-tabs>
+      </div>
+      <div class="md:hidden">
+        <p-accordion
+          [multiple]="true"
+          (activeIndexChange)="onMobileIndexChange($event)"
+        >
+          <p-accordion-panel value="headers">
+            <p-accordion-header>
+              <span class="uppercase">Headers</span>
+            </p-accordion-header>
+            <p-accordion-content>
+              <ng-container [ngTemplateOutlet]="headersTemplate"></ng-container>
+            </p-accordion-content>
+          </p-accordion-panel>
           @if (selectedRequestMethod === 'POST') {
-          <p-tab value="body">
-            <span class="uppercase">Body</span>
-          </p-tab>
+          <p-accordion-panel value="body">
+            <p-accordion-header>
+              <span class="uppercase">Body</span>
+            </p-accordion-header>
+            <p-accordion-content>
+              <ng-container [ngTemplateOutlet]="bodyTemplate"></ng-container>
+            </p-accordion-content>
+          </p-accordion-panel>
           }
-        </p-tablist>
-        <p-tabpanels>
-          <p-tabpanel value="headers">
-            <div class="flex flex-col gap-2">
-              <div
-                class="grid grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide"
-              >
-                <div class="col-span-5">Key</div>
-                <div class="col-span-6">Value</div>
-                <div class="col-span-1 text-center"></div>
-              </div>
-              @for (item of requestHeaders; track item; let index = $index) {
-              <div class="grid grid-cols-12 items-center gap-4">
-                <div class="col-span-5">
-                  <input
-                    pInputText
-                    [disabled]="item.key === 'Content-Type'"
-                    class="requestBodyItem w-full"
-                    [(ngModel)]="item.key"
-                  />
-                </div>
-                <div class="col-span-6">
-                  <input
-                    pInputText
-                    [disabled]="item.key === 'Content-Type'"
-                    class="requestBodyItem w-full"
-                    [(ngModel)]="item.value"
-                  />
-                </div>
-                <div class="col-span-1 text-center">
-                  <button
-                    pButton
-                    type="button"
-                    text
-                    icon="pi pi-times"
-                    [disabled]="item.key === 'Content-Type'"
-                    severity="danger"
-                    (click)="removeItem(index, 'Headers')"
-                  ></button>
-                </div>
-              </div>
-              }
-              <div class="pt-2">
-                <button
-                  pButton
-                  type="button"
-                  icon="pi pi-plus"
-                  label="Add Header"
-                  class="uppercase"
-                  [disabled]="isAddDisabled('Headers')"
-                  severity="secondary"
-                  (click)="addItem('Headers')"
-                ></button>
-              </div>
-            </div>
-          </p-tabpanel>
-          @if (selectedRequestMethod === 'POST') {
-          <p-tabpanel value="body">
-            <div class="flex flex-col gap-2">
-              <div
-                class="grid grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide"
-              >
-                <div class="col-span-4">Key</div>
-                <div class="col-span-4">Value</div>
-                <div class="col-span-3">Data Type</div>
-                <div class="col-span-1 text-center"></div>
-              </div>
-              @for (item of requestBody; track item; let index = $index) {
-              <div class="grid grid-cols-12 items-center gap-4">
-                <div class="col-span-4">
-                  <input
-                    pInputText
-                    class="requestBodyItem w-full"
-                    [(ngModel)]="item.key"
-                  />
-                </div>
-                <div class="col-span-4">
-                  @if (requestBodyDataTypes[index] !== 'Boolean') {
-                  <input
-                    pInputText
-                    [type]="
-                      requestBodyDataTypes[index]
-                        ? requestBodyDataTypes[index].toLowerCase()
-                        : 'text'
-                    "
-                    [disabled]="requestBodyDataTypes[index] === ''"
-                    class="requestBodyItem w-full"
-                    [(ngModel)]="item.value"
-                  />
-                  } @if (requestBodyDataTypes[index] === 'Boolean') {
-                  <p-select
-                    class="w-full"
-                    [disabled]="requestBodyDataTypes[index] === ''"
-                    [options]="booleanOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    appendTo="body"
-                    placeholder="Select"
-                    [(ngModel)]="item.value"
-                  ></p-select>
-                  }
-                </div>
-                <div class="col-span-3">
-                  <p-select
-                    class="w-full"
-                    [options]="availableDataTypes"
-                    optionLabel="label"
-                    optionValue="value"
-                    appendTo="body"
-                    placeholder="Data Type"
-                    [(ngModel)]="requestBodyDataTypes[index]"
-                  ></p-select>
-                </div>
-                <div class="col-span-1 text-center">
-                  <button
-                    pButton
-                    text
-                    type="button"
-                    icon="pi pi-times"
-                    severity="danger"
-                    (click)="removeItem(index, 'Body')"
-                  ></button>
-                </div>
-              </div>
-              }
-              <div class="pt-2">
-                <button
-                  pButton
-                  type="button"
-                  icon="pi pi-plus"
-                  label="Add Item"
-                  class="uppercase"
-                  [disabled]="isAddDisabled('Body')"
-                  severity="secondary"
-                  (click)="addItem('Body')"
-                ></button>
-              </div>
-            </div>
-          </p-tabpanel>
-          }
-        </p-tabpanels>
-      </p-tabs>
+        </p-accordion>
+      </div>
     </section>
+
+    <ng-template #headersTemplate>
+      <div class="flex flex-col gap-2">
+        <div
+          class="hidden grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide md:grid"
+        >
+          <div class="md:col-span-5">Key</div>
+          <div class="md:col-span-6">Value</div>
+          <div class="md:col-span-1 text-center"></div>
+        </div>
+        @for (item of requestHeaders; track item; let index = $index) {
+        <div
+          class="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4"
+        >
+          <div class="w-full md:col-span-5">
+            <input
+              pInputText
+              [disabled]="item.key === 'Content-Type'"
+              class="requestBodyItem w-full"
+              [(ngModel)]="item.key"
+            />
+          </div>
+          <div class="w-full md:col-span-6">
+            <input
+              pInputText
+              [disabled]="item.key === 'Content-Type'"
+              class="requestBodyItem w-full"
+              [(ngModel)]="item.value"
+            />
+          </div>
+          <div class="hidden md:flex justify-end md:col-span-1">
+            <button
+              pButton
+              type="button"
+              text
+              icon="pi pi-times"
+              [disabled]="item.key === 'Content-Type'"
+              severity="danger"
+              (click)="removeItem(index, 'Headers')"
+            ></button>
+          </div>
+          <div class="md:hidden col-span-1">
+            <button
+              pButton
+              type="button"
+              text
+              icon="pi pi-times"
+              label="Remove"
+              [disabled]="item.key === 'Content-Type'"
+              severity="danger"
+              (click)="removeItem(index, 'Headers')"
+            ></button>
+          </div>
+        </div>
+        }
+        <div class="my-4">
+          <button
+            pButton
+            type="button"
+            icon="pi pi-plus"
+            label="Add Header"
+            class="uppercase"
+            [disabled]="isAddDisabled('Headers')"
+            severity="secondary"
+            (click)="addItem('Headers')"
+          ></button>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template #bodyTemplate>
+      <div class="flex flex-col gap-2">
+        <div
+          class="hidden grid-cols-12 gap-4 px-2 text-sm font-semibold uppercase tracking-wide md:grid"
+        >
+          <div class="md:col-span-4">Key</div>
+          <div class="md:col-span-4">Value</div>
+          <div class="md:col-span-3">Data Type</div>
+          <div class="md:col-span-1 text-center"></div>
+        </div>
+        @for (item of requestBody; track item; let index = $index) {
+        <div
+          class="flex flex-col gap-3 md:grid md:grid-cols-12 md:items-center md:gap-4"
+        >
+          <div class="w-full md:col-span-4">
+            <input
+              pInputText
+              class="requestBodyItem w-full"
+              [(ngModel)]="item.key"
+            />
+          </div>
+          <div class="w-full md:col-span-4">
+            @if (requestBodyDataTypes[index] !== 'Boolean') {
+            <input
+              pInputText
+              [type]="
+                requestBodyDataTypes[index]
+                  ? requestBodyDataTypes[index].toLowerCase()
+                  : 'text'
+              "
+              [disabled]="requestBodyDataTypes[index] === ''"
+              class="requestBodyItem w-full"
+              [(ngModel)]="item.value"
+            />
+            } @if (requestBodyDataTypes[index] === 'Boolean') {
+            <p-select
+              class="w-full"
+              [disabled]="requestBodyDataTypes[index] === ''"
+              [options]="booleanOptions"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              placeholder="Select"
+              [(ngModel)]="item.value"
+            ></p-select>
+            }
+          </div>
+          <div class="w-full md:col-span-3">
+            <p-select
+              class="w-full"
+              [options]="availableDataTypes"
+              optionLabel="label"
+              optionValue="value"
+              appendTo="body"
+              placeholder="Data Type"
+              [(ngModel)]="requestBodyDataTypes[index]"
+            ></p-select>
+          </div>
+          <div class="hidden md:flex justify-end md:col-span-1">
+            <button
+              pButton
+              text
+              type="button"
+              icon="pi pi-times"
+              severity="danger"
+              (click)="removeItem(index, 'Body')"
+            ></button>
+          </div>
+          <div class="md:hidden col-span-1">
+            <button
+              pButton
+              text
+              type="button"
+              icon="pi pi-times"
+              label="Remove"
+              severity="danger"
+              (click)="removeItem(index, 'Body')"
+            ></button>
+          </div>
+        </div>
+        }
+        <div class="my-4">
+          <button
+            pButton
+            type="button"
+            icon="pi pi-plus"
+            label="Add Item"
+            class="uppercase"
+            [disabled]="isAddDisabled('Body')"
+            severity="secondary"
+            (click)="addItem('Body')"
+          ></button>
+        </div>
+      </div>
+    </ng-template>
 
     <button
       pButton

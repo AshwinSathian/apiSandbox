@@ -4,6 +4,7 @@ import { Component, EventEmitter, OnInit, Output } from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { ButtonModule } from "primeng/button";
 import { CardModule } from "primeng/card";
+import { AccordionModule } from "primeng/accordion";
 import { FloatLabelModule } from "primeng/floatlabel";
 import { InputTextModule } from "primeng/inputtext";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
@@ -23,6 +24,7 @@ import { PastRequest } from "../../models/history.models";
     ReactiveFormsModule,
     ButtonModule,
     CardModule,
+    AccordionModule,
     SelectModule,
     InputTextModule,
     ProgressSpinnerModule,
@@ -49,6 +51,7 @@ export class ApiParamsComponent implements OnInit {
   endpointError: string;
   loadingState: boolean;
   activeTab: string;
+  mobileActiveIndices: number[];
 
   constructor(
     private _mainService: MainService,
@@ -75,6 +78,8 @@ export class ApiParamsComponent implements OnInit {
     this.endpointError = "";
     this.loadingState = false;
     this.activeTab = "headers";
+    this.mobileActiveIndices = [0];
+    this.syncMobilePanelsFromActiveTab();
   }
 
   ngOnInit() {}
@@ -140,6 +145,7 @@ export class ApiParamsComponent implements OnInit {
       this.requestBodyDataTypes = [""];
       this.activeTab = "headers";
     }
+    this.syncMobilePanelsFromActiveTab();
   }
 
   sendRequest() {
@@ -247,6 +253,7 @@ export class ApiParamsComponent implements OnInit {
       this.requestBody = [{ key: "", value: "" }];
       this.requestBodyDataTypes = [""];
     }
+    this.syncMobilePanelsFromActiveTab();
   }
 
   private buildHeaders(): Record<string, string> {
@@ -322,6 +329,7 @@ export class ApiParamsComponent implements OnInit {
     this.requestBodyDataTypes = [""];
     this.requestHeaders = [{ key: "Content-Type", value: "application/json" }];
     this.endpointError = "";
+    this.syncMobilePanelsFromActiveTab();
   }
 
   private deconstructObject(object: Record<string, unknown>, type: string) {
@@ -356,5 +364,28 @@ export class ApiParamsComponent implements OnInit {
     }
 
     return objectArray;
+  }
+
+  onMobileIndexChange(index: number | number[]): void {
+    const indices = Array.isArray(index) ? index : [index];
+    this.mobileActiveIndices = indices.length ? [...indices] : [0];
+
+    if (
+      this.selectedRequestMethod === "POST" &&
+      this.mobileActiveIndices.includes(1)
+    ) {
+      this.activeTab = "body";
+    } else {
+      this.activeTab = "headers";
+    }
+  }
+
+  private syncMobilePanelsFromActiveTab(): void {
+    if (this.selectedRequestMethod === "POST") {
+      this.mobileActiveIndices =
+        this.activeTab === "body" ? [1] : [0];
+    } else {
+      this.mobileActiveIndices = [0];
+    }
   }
 }

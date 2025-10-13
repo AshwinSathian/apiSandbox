@@ -43,15 +43,15 @@
     </div>
     } @else { @for (request of pastRequests; track trackById($index, request)) {
     <div
-      class="overflow-hidden rounded-lg border border-l-4 bg-slate-900/60 transition hover:bg-slate-900/75"
-      [ngClass]="{
-        'border-l-blue-300': request.method === 'GET',
-        'border-l-emerald-300': request.method === 'POST'
-      }"
+      class="overflow-hidden rounded-lg bg-slate-900/60 transition hover:bg-slate-900/75"
     >
-      <div class="flex items-center gap-1">
+      <div class="hidden md:flex items-center gap-1">
         <span
           class="cursor-pointer truncate font-mono text-sm text-slate-300"
+          [ngClass]="{
+            'text-blue-300': request.method === 'GET',
+            'text-emerald-300': request.method === 'POST'
+          }"
           (click)="load(request)"
           (mouseenter)="detailsPopover.show($event)"
           (mouseleave)="detailsPopover.hide()"
@@ -104,84 +104,32 @@
           [dismissable]="true"
           [styleClass]="'hidden md:block'"
         >
-          <div class="space-y-2 text-xs text-slate-100 min-w-fit">
-            <div class="flex flex-col items-start">
+          <ng-container
+            [ngTemplateOutlet]="requestDetails"
+            [ngTemplateOutletContext]="{ request: request }"
+          ></ng-container>
+        </p-popover>
+      </div>
+
+      <div class="border-t border-slate-800/60 md:hidden my-2">
+        <p-accordion>
+          <p-accordion-panel [value]="request.id ?? $index">
+            <p-accordion-header>
               <span
-                class="font-light uppercase font-mono text-xs"
+                class="text-xs font-semibold text-slate-300 truncate line-clamp-1"
                 [ngClass]="{
                   'text-blue-300': request.method === 'GET',
                   'text-emerald-300': request.method === 'POST'
                 }"
               >
-                {{ request.method }}
-              </span>
-              <span class="font-semibold font-mono text-sm text-slate-300">
                 {{ request.url }}
               </span>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-start">
-              @if (request.status !== undefined) {
-              <div class="flex items-center gap-1 p-2">
-                <span class="material-symbols-outlined text-base text-sky-300">
-                  check_circle
-                </span>
-                <span>{{ request.status }}</span>
-              </div>
-              } @if (request.durationMs !== undefined) {
-              <div class="flex items-center gap-1 p-2">
-                <span
-                  class="material-symbols-outlined text-base text-emerald-300"
-                >
-                  schedule
-                </span>
-                <span>{{ request.durationMs }} ms</span>
-              </div>
-              }
-              <div class="flex items-center gap-1 p-2">
-                <span
-                  class="material-symbols-outlined text-base text-amber-300"
-                >
-                  calendar_month
-                </span>
-                <span>{{ request.createdAt | date : "short" }}</span>
-              </div>
-            </div>
-          </div>
-        </p-popover>
-      </div>
-
-      <div class="border-t border-slate-800/60 md:hidden">
-        <p-accordion>
-          <p-accordion-panel [value]="request.id ?? $index">
-            <p-accordion-header>
-              <span class="text-xs font-semibold uppercase tracking-wide text-slate-300">Details</span>
             </p-accordion-header>
             <p-accordion-content>
-              <div class="space-y-2 text-xs text-slate-300">
-                @if (request.status !== undefined) {
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-base text-sky-300"
-                    >check_circle</span
-                  >
-                  <span>Status: {{ request.status }}</span>
-                </div>
-                } @if (request.durationMs !== undefined) {
-                <div class="flex items-center gap-2">
-                  <span
-                    class="material-symbols-outlined text-base text-emerald-300"
-                    >schedule</span
-                  >
-                  <span>{{ request.durationMs }} ms</span>
-                </div>
-                }
-                <div class="flex items-center gap-2">
-                  <span class="material-symbols-outlined text-base text-amber-300"
-                    >calendar_month</span
-                  >
-                  <span>{{ request.createdAt | date : "short" }}</span>
-                </div>
-              </div>
+              <ng-container
+                [ngTemplateOutlet]="requestDetails"
+                [ngTemplateOutletContext]="{ request: request }"
+              ></ng-container>
             </p-accordion-content>
           </p-accordion-panel>
         </p-accordion>
@@ -190,3 +138,66 @@
     } }
   </div>
 </section>
+
+<ng-template #requestDetails let-request="request">
+  <div class="space-y-2 text-xs text-slate-100 min-w-fit">
+    <div class="flex flex-col items-start">
+      <span
+        class="font-semibold font-mono text-sm text-slate-300 uppercase tracking-wider"
+        [ngClass]="{
+          'text-blue-300': request.method === 'GET',
+          'text-emerald-300': request.method === 'POST'
+        }"
+      >
+        {{ request.method }}
+      </span>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-start">
+      @if (request.status !== undefined) {
+      <div class="flex items-center gap-1 p-2">
+        <span class="material-symbols-outlined text-base text-sky-300">
+          check_circle
+        </span>
+        <span>{{ request.status }}</span>
+      </div>
+      } @if (request.durationMs !== undefined) {
+      <div class="flex items-center gap-1 p-2">
+        <span class="material-symbols-outlined text-base text-emerald-300">
+          schedule
+        </span>
+        <span>{{ request.durationMs }} ms</span>
+      </div>
+      }
+      <div class="flex items-center gap-1 p-2">
+        <span class="material-symbols-outlined text-base text-amber-300">
+          calendar_month
+        </span>
+        <span>{{ request.createdAt | date : "short" }}</span>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-start gap-2 md:hidden">
+      <button
+        pButton
+        type="button"
+        text
+        label="Load"
+        severity="secondary"
+        class="uppercase"
+        size="small"
+        (click)="load(request)"
+      ></button>
+      <button
+        pButton
+        type="button"
+        text
+        label="Delete"
+        severity="danger"
+        class="uppercase"
+        size="small"
+        (click)="confirmDelete(request, $event)"
+      ></button>
+    </div>
+  </div>
+</ng-template>

@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "apiSandbox": {
+    "api-sandbox": {
       "projectType": "application",
       "schematics": {},
       "root": "",
@@ -14,12 +14,10 @@
           "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": {
-              "base": "dist/apiSandbox"
+              "base": "dist/api-sandbox"
             },
             "index": "src/index.html",
-            "polyfills": [
-              "src/polyfills.ts"
-            ],
+            "polyfills": ["src/polyfills.ts"],
             "tsConfig": "tsconfig.app.json",
             "aot": false,
             "assets": [
@@ -72,18 +70,18 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "buildTarget": "apiSandbox:build"
+            "buildTarget": "api-sandbox:build"
           },
           "configurations": {
             "production": {
-              "buildTarget": "apiSandbox:build:production"
+              "buildTarget": "api-sandbox:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "apiSandbox:build"
+            "buildTarget": "api-sandbox:build"
           }
         },
         "test": {
@@ -124,11 +122,11 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "e2e/protractor.conf.js",
-            "devServerTarget": "apiSandbox:serve"
+            "devServerTarget": "api-sandbox:serve"
           },
           "configurations": {
             "production": {
-              "devServerTarget": "apiSandbox:serve:production"
+              "devServerTarget": "api-sandbox:serve:production"
             }
           }
         }

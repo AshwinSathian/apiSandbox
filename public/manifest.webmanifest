@@ -1,6 +1,6 @@
 {
-  "name": "apiSandbox",
-  "short_name": "apiSandbox",
+  "name": "api-sandbox",
+  "short_name": "api-sandbox",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",
