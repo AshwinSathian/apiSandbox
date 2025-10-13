@@ -1,6 +1,16 @@
 import { CommonModule } from "@angular/common";
-import { HttpErrorResponse } from "@angular/common/http";
-import { Component, EventEmitter, OnInit, Output } from "@angular/core";
+import {
+  HttpErrorResponse,
+  HttpHeaders,
+  HttpResponse,
+} from "@angular/common/http";
+import {
+  Component,
+  EventEmitter,
+  OnInit,
+  Output,
+  Signal,
+} from "@angular/core";
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { AccordionModule } from "primeng/accordion";
 import { ButtonModule } from "primeng/button";
@@ -17,6 +27,11 @@ import { IdbService } from "../../data/idb.service";
 import { PastRequest } from "../../models/history.models";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
 import { ApiParamsBasicComponent } from "./basic-editor/basic-editor.component";
+import { ResponseViewerComponent } from "../response-viewer/response-viewer.component";
+import {
+  ResponseInspectorService,
+  ResponseInspection,
+} from "../../shared/inspect/response-inspector.service";
 
 type EditorMode = "basic" | "json";
 type ContextType = "Body" | "Headers";
@@ -40,6 +55,7 @@ type ContextType = "Body" | "Headers";
     SkeletonModule,
     JsonEditorComponent,
     ApiParamsBasicComponent,
+    ResponseViewerComponent,
   ],
   templateUrl: "./api-params.component.html",
 })
@@ -73,8 +89,15 @@ export class ApiParamsComponent implements OnInit {
     item: { key: string; value: unknown },
     index: number
   ) => boolean;
-  responseData: any;
-  responseError: any;
+  responseData: string;
+  responseError: string;
+  responseBodyIsJson: boolean;
+  responseHeadersView: Array<{ name: string; value: string }>;
+  responseStatusCode?: number;
+  responseStatusText?: string;
+  responseIsError: boolean;
+  responseTab: "body" | "headers" | "timings";
+  readonly responseInspection: Signal<ResponseInspection | null>;
   requestBody: Array<{ key: string; value: unknown }>;
   requestBodyDataTypes: string[];
   readonly availableDataTypes: Array<{ label: string; value: string }>;
@@ -87,7 +110,8 @@ export class ApiParamsComponent implements OnInit {
 
   constructor(
     private _mainService: MainService,
-    private _idbService: IdbService
+    private _idbService: IdbService,
+    private _responseInspector: ResponseInspectorService
   ) {
     this.endpoint = "";
     this.selectedRequestMethod = "GET";
@@ -127,6 +151,15 @@ export class ApiParamsComponent implements OnInit {
     this.bodyJsonText = "{}";
     this.headersJsonValid = true;
     this.bodyJsonValid = true;
+    this.responseData = "";
+    this.responseError = "";
+    this.responseBodyIsJson = false;
+    this.responseHeadersView = [];
+    this.responseIsError = false;
+    this.responseStatusCode = undefined;
+    this.responseStatusText = undefined;
+    this.responseTab = "body";
+    this.responseInspection = this._responseInspector.latest;
     this.addItemFn = (ctx: ContextType) => this.addItem(ctx);
     this.removeItemFn = (index: number, ctx: ContextType) =>
       this.removeItem(index, ctx);
@@ -210,8 +243,7 @@ export class ApiParamsComponent implements OnInit {
 
   sendRequest() {
     this.endpointError = "";
-    this.responseData = "";
-    this.responseError = "";
+    this.resetResponseState();
 
     if (!this.endpoint) {
       this.endpointError = "Endpoint is a Required value";
@@ -228,15 +260,19 @@ export class ApiParamsComponent implements OnInit {
     const requestBody = usesBody ? this.buildBody() : undefined;
     const transportBody = usesBody ? requestBody ?? {} : undefined;
     const endpoint = this.endpoint.trim();
+    const requestId = this.createRequestId();
     const startedAt = performance.now();
     const createdAt = Date.now();
 
+    this._responseInspector.markRequest(requestId, endpoint);
     this.loadingState = true;
     this._mainService
       .sendRequest(method, endpoint, requestHeaders, transportBody)
       .subscribe({
         next: async (response) => {
           this.loadingState = false;
+          this._responseInspector.markResponse(requestId, endpoint);
+          this.captureSuccessResponse(response);
           this.responseData = this.stringifyPayload(response.body);
           const history: PastRequest = {
             method,
@@ -254,6 +290,8 @@ export class ApiParamsComponent implements OnInit {
         },
         error: async (error: HttpErrorResponse) => {
           this.loadingState = false;
+          this._responseInspector.markResponse(requestId, endpoint);
+          this.captureErrorResponse(error);
           this.responseError = this.stringifyPayload(
             error.error ?? error.message
           );
@@ -273,6 +311,97 @@ export class ApiParamsComponent implements OnInit {
           this.resetForm();
         },
       });
+  }
+
+  private resetResponseState(): void {
+    this.responseData = "";
+    this.responseError = "";
+    this.responseBodyIsJson = false;
+    this.responseHeadersView = [];
+    this.responseStatusCode = undefined;
+    this.responseStatusText = undefined;
+    this.responseIsError = false;
+    this.responseTab = "body";
+  }
+
+  private captureSuccessResponse(response: HttpResponse<unknown>): void {
+    this.responseIsError = false;
+    this.responseStatusCode = response.status;
+    this.responseStatusText = response.statusText ?? "";
+    this.responseBodyIsJson = this.isJsonPayload(response.body);
+    this.responseHeadersView = this.extractHeadersList(response.headers);
+    this.responseTab = "body";
+  }
+
+  private captureErrorResponse(error: HttpErrorResponse): void {
+    this.responseIsError = true;
+    this.responseStatusCode = error.status;
+    this.responseStatusText = error.statusText ?? "";
+    this.responseBodyIsJson = this.isJsonPayload(error.error);
+    this.responseHeadersView = this.extractHeadersList(error.headers);
+    this.responseTab = "body";
+  }
+
+  private extractHeadersList(
+    headers: HttpHeaders | null | undefined
+  ): Array<{ name: string; value: string }> {
+    if (!headers) {
+      return [];
+    }
+    const keys = headers.keys();
+    return keys
+      .map((name) => {
+        const values = headers.getAll(name);
+        return {
+          name,
+          value: values && values.length ? values.join(", ") : "",
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  private createRequestId(): string {
+    if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+      return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
+
+  private isJsonPayload(payload: unknown): boolean {
+    if (payload === null || payload === undefined) {
+      return false;
+    }
+    if (typeof payload === "object") {
+      const hasBlob =
+        typeof Blob !== "undefined" && payload instanceof Blob;
+      const hasArrayBuffer =
+        typeof ArrayBuffer !== "undefined" && payload instanceof ArrayBuffer;
+      const hasFormData =
+        typeof FormData !== "undefined" && payload instanceof FormData;
+      if (hasBlob || hasArrayBuffer || hasFormData) {
+        return false;
+      }
+      return true;
+    }
+    if (typeof payload === "string") {
+      try {
+        JSON.parse(payload);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  get shouldShowResponsePanel(): boolean {
+    return (
+      this.loadingState ||
+      this.responseStatusCode !== undefined ||
+      !!this.responseData ||
+      !!this.responseError ||
+      this.responseHeadersView.length > 0
+    );
   }
 
   onRequestMethodChange(method: PastRequest["method"]) {

@@ -1,14 +1,22 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { ComponentFixture, TestBed, fakeAsync, flushMicrotasks } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { provideNoopAnimations } from '@angular/platform-browser/animations';
 import { ApiParamsComponent } from './api-params.component';
 import { IdbService } from '../../data/idb.service';
 import { PastRequest } from '../../models/history.models';
+import { ResponseInspectorService } from '../../shared/inspect/response-inspector.service';
 
 class IdbServiceMock {
   init = jasmine.createSpy('init').and.returnValue(Promise.resolve());
   add = jasmine.createSpy('add').and.returnValue(Promise.resolve(1));
+}
+
+class ResponseInspectorServiceStub {
+  readonly latest = signal(null).asReadonly();
+  markRequest = jasmine.createSpy('markRequest');
+  markResponse = jasmine.createSpy('markResponse');
 }
 
 describe('ApiParamsComponent', () => {
@@ -16,15 +24,18 @@ describe('ApiParamsComponent', () => {
   let fixture: ComponentFixture<ApiParamsComponent>;
   let httpMock: HttpTestingController;
   let idbService: IdbServiceMock;
+  let responseInspector: ResponseInspectorServiceStub;
 
   beforeEach(async () => {
     idbService = new IdbServiceMock();
+    responseInspector = new ResponseInspectorServiceStub();
     await TestBed.configureTestingModule({
       imports: [ApiParamsComponent],
       providers: [
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting(),
         { provide: IdbService, useValue: idbService },
+        { provide: ResponseInspectorService, useValue: responseInspector },
         provideNoopAnimations(),
       ],
     }).compileComponents();
@@ -64,6 +75,10 @@ describe('ApiParamsComponent', () => {
     component.selectedRequestMethod = 'GET';
 
     component.sendRequest();
+    expect(responseInspector.markRequest).toHaveBeenCalledWith(
+      jasmine.any(String),
+      'https://example.com/data'
+    );
 
     const req = httpMock.expectOne('https://example.com/data');
     expect(req.request.method).toBe('GET');
@@ -71,7 +86,14 @@ describe('ApiParamsComponent', () => {
 
     flushMicrotasks();
 
+    expect(responseInspector.markResponse).toHaveBeenCalledWith(
+      jasmine.any(String),
+      'https://example.com/data'
+    );
     expect(component.responseData).toContain('ok');
+    expect(component.responseBodyIsJson).toBeTrue();
+    expect(component.responseStatusCode).toBe(200);
+    expect(component.shouldShowResponsePanel).toBeTrue();
     expect(idbService.add).toHaveBeenCalledWith(jasmine.objectContaining({
       method: 'GET',
       url: 'https://example.com/data',
@@ -96,6 +118,10 @@ describe('ApiParamsComponent', () => {
     component.requestHeaders = [{ key: 'Content-Type', value: 'application/json' }];
 
     component.sendRequest();
+    expect(responseInspector.markRequest).toHaveBeenCalledWith(
+      jasmine.any(String),
+      'https://example.com/create'
+    );
 
     const req = httpMock.expectOne('https://example.com/create');
     expect(req.request.method).toBe('POST');
@@ -104,7 +130,14 @@ describe('ApiParamsComponent', () => {
 
     flushMicrotasks();
 
+    expect(responseInspector.markResponse).toHaveBeenCalledWith(
+      jasmine.any(String),
+      'https://example.com/create'
+    );
     expect(component.responseError).toContain('failed');
+    expect(component.responseBodyIsJson).toBeTrue();
+    expect(component.responseStatusCode).toBe(500);
+    expect(component.shouldShowResponsePanel).toBeTrue();
     expect(idbService.add).toHaveBeenCalledWith(jasmine.objectContaining({
       method: 'POST',
       url: 'https://example.com/create',

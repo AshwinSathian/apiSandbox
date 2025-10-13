@@ -156,20 +156,19 @@
       (click)="sendRequest()"
     ></button>
 
-    @if (loadingState || responseData||responseError) {
-    <div class="mt-6 w-full min-h-[10vh] rounded-lg bg-black/80 p-4">
-      @if (loadingState) {
-      <div class="space-y-3">
-        <p-skeleton height="2rem" borderRadius="0.75rem"></p-skeleton>
-        <p-skeleton height="1.5rem" borderRadius="0.75rem"></p-skeleton>
-        <p-skeleton height="8rem" borderRadius="1rem"></p-skeleton>
-      </div>
-      } @if (responseData) {
-      <pre class="whitespace-pre-wrap text-green-400">{{ responseData }}</pre>
-      } @if (responseError) {
-      <pre class="whitespace-pre-wrap text-red-400">{{ responseError }}</pre>
-      }
-    </div>
+    @if (shouldShowResponsePanel) {
+    <app-response-viewer
+      [loading]="loadingState"
+      [responseData]="responseData"
+      [responseError]="responseError"
+      [responseBodyIsJson]="responseBodyIsJson"
+      [responseHeaders]="responseHeadersView"
+      [responseStatusCode]="responseStatusCode"
+      [responseStatusText]="responseStatusText"
+      [isError]="responseIsError"
+      [inspection]="responseInspection"
+      [(activeTab)]="responseTab"
+    ></app-response-viewer>
     }
   </div>
 </p-card>
