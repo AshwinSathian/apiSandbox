@@ -287,6 +287,15 @@ export class JsonEditorComponent
   }
 
   private validateCurrentValue(): void {
+    if (this.readOnly) {
+      if (!this.isJsonValid) {
+        this.isJsonValid = true;
+        this.jsonValidChange.emit(true);
+      }
+      this.parsedChange.emit(undefined);
+      return;
+    }
+
     const { isValid, parsed } = this.tryParseJson(this.internalValue);
     const validityChanged = isValid !== this.isJsonValid;
     this.isJsonValid = isValid;

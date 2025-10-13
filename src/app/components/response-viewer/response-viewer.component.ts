@@ -3,8 +3,10 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnChanges,
   Output,
   Signal,
+  SimpleChanges,
   signal,
 } from "@angular/core";
 import { TabsModule } from "primeng/tabs";
@@ -12,6 +14,7 @@ import { SkeletonModule } from "primeng/skeleton";
 import { TooltipModule } from "primeng/tooltip";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
 import { ResponseInspection } from "../../shared/inspect/response-inspector.service";
+import { JsonWorkerService } from "../../shared/json-worker/json-worker.service";
 
 type ResponseTab = "body" | "headers" | "timings";
 
@@ -34,7 +37,7 @@ interface TimingBar {
   imports: [CommonModule, TabsModule, SkeletonModule, TooltipModule, JsonEditorComponent],
   templateUrl: "./response-viewer.component.html",
 })
-export class ResponseViewerComponent {
+export class ResponseViewerComponent implements OnChanges {
   @Input() loading = false;
   @Input() responseData = "";
   @Input() responseError = "";
@@ -44,6 +47,7 @@ export class ResponseViewerComponent {
   @Input() responseStatusText?: string;
   @Input() isError = false;
   @Input() inspection?: Signal<ResponseInspection | null> | null;
+  @Input() responseContentLength?: number;
 
   private readonly fallbackInspection = signal<ResponseInspection | null>(null);
 
@@ -54,6 +58,9 @@ export class ResponseViewerComponent {
   }
   set activeTab(value: ResponseTab) {
     this._activeTab = value;
+    if (value === "body") {
+      this.prepareFormatting();
+    }
   }
 
   @Output() activeTabChange = new EventEmitter<ResponseTab>();
@@ -119,9 +126,179 @@ export class ResponseViewerComponent {
     this.timingPhaseOrder.map((phase) => [phase.key, phase.description])
   );
 
+  private readonly largePayloadThreshold = 1_000_000;
+  private formattedBody = "";
+  private formattedError = "";
+  private bodyFormatToken = 0;
+  private errorFormatToken = 0;
+  private lastBodySource: string | null = null;
+  private lastBodyResult: string | null = null;
+  private lastErrorSource: string | null = null;
+  private lastErrorResult: string | null = null;
+
+  constructor(private readonly jsonWorker: JsonWorkerService) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (
+      "responseData" in changes ||
+      "responseError" in changes ||
+      "responseBodyIsJson" in changes ||
+      "isError" in changes ||
+      "responseContentLength" in changes
+    ) {
+      this.prepareFormatting();
+    }
+
+    if ("activeTab" in changes && this._activeTab === "body") {
+      this.prepareFormatting();
+    }
+
+    if ("responseBodyIsJson" in changes && !this.responseBodyIsJson) {
+      this.resetFormattedValues();
+    }
+  }
+
+  get formattedResponseBody(): string {
+    if (this.isError) {
+      return this.formattedResponseError;
+    }
+    return this.formattedBody;
+  }
+
+  get formattedResponseError(): string {
+    return this.formattedError;
+  }
+
+  private prepareFormatting(): void {
+    if (!this.responseBodyIsJson) {
+      this.formattedBody = this.responseData ?? "";
+      this.formattedError = this.responseError ?? "";
+      this.lastBodySource = this.formattedBody;
+      this.lastBodyResult = this.formattedBody;
+      this.lastErrorSource = this.formattedError;
+      this.lastErrorResult = this.formattedError;
+      return;
+    }
+
+    if (this._activeTab !== "body") {
+      return;
+    }
+
+    const source = this.isError ? this.responseError : this.responseData;
+    const normalized = source ?? "";
+
+    if (!normalized.trim()) {
+      if (this.isError) {
+        this.formattedError = "";
+        this.lastErrorSource = "";
+        this.lastErrorResult = "";
+      } else {
+        this.formattedBody = "";
+        this.lastBodySource = "";
+        this.lastBodyResult = "";
+      }
+      return;
+    }
+
+    if (this.isError) {
+      void this.formatAndAssign(normalized, "error");
+    } else {
+      void this.formatAndAssign(normalized, "body");
+    }
+  }
+
+  private resetFormattedValues(): void {
+    this.formattedBody = this.responseData ?? "";
+    this.formattedError = this.responseError ?? "";
+    this.lastBodySource = this.formattedBody;
+    this.lastBodyResult = this.formattedBody;
+    this.lastErrorSource = this.formattedError;
+    this.lastErrorResult = this.formattedError;
+  }
+
+  private async formatAndAssign(source: string, kind: "body" | "error"): Promise<void> {
+    if (kind === "body" && this.lastBodySource === source) {
+      this.formattedBody = this.lastBodyResult ?? source;
+      return;
+    }
+    if (kind === "error" && this.lastErrorSource === source) {
+      this.formattedError = this.lastErrorResult ?? source;
+      return;
+    }
+
+    const token =
+      kind === "body"
+        ? ++this.bodyFormatToken
+        : ++this.errorFormatToken;
+
+    const useWorker = this.shouldUseWorker(source);
+
+    if (!useWorker) {
+      const result = this.prettyPrintInline(source);
+      this.assignFormatted(kind, source, result);
+      return;
+    }
+
+    try {
+      const formatted = await this.jsonWorker.parsePretty(source, 4);
+      if (!this.isCurrentToken(token, kind)) {
+        return;
+      }
+      this.assignFormatted(kind, source, formatted);
+    } catch {
+      if (!this.isCurrentToken(token, kind)) {
+        return;
+      }
+      const fallback = this.prettyPrintInline(source);
+      this.assignFormatted(kind, source, fallback);
+    }
+  }
+
+  private assignFormatted(kind: "body" | "error", source: string, value: string): void {
+    if (kind === "body") {
+      this.formattedBody = value;
+      this.lastBodySource = source;
+      this.lastBodyResult = value;
+    } else {
+      this.formattedError = value;
+      this.lastErrorSource = source;
+      this.lastErrorResult = value;
+    }
+  }
+
+  private shouldUseWorker(source: string): boolean {
+    const hint = this.responseContentLength ?? 0;
+    return Math.max(source.length, hint) >= this.largePayloadThreshold;
+  }
+
+  private isCurrentToken(token: number, kind: "body" | "error"): boolean {
+    return kind === "body"
+      ? token === this.bodyFormatToken
+      : token === this.errorFormatToken;
+  }
+
+  private prettyPrintInline(input: string): string {
+    try {
+      return JSON.stringify(JSON.parse(input), null, 4);
+    } catch {
+      return input;
+    }
+  }
+
+  onReadOnlyBodyChange(value: string): void {
+    this.formattedBody = value;
+  }
+
+  onReadOnlyErrorChange(value: string): void {
+    this.formattedError = value;
+  }
+
   onTabChange(value: ResponseTab): void {
     this._activeTab = value;
     this.activeTabChange.emit(value);
+    if (value === "body") {
+      this.prepareFormatting();
+    }
   }
 
   get inspectionValue(): ResponseInspection | null {
@@ -203,4 +380,3 @@ export class ResponseViewerComponent {
     return `${size.toFixed(precision)} ${units[unitIndex]}`;
   }
 }
-

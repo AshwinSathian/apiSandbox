@@ -97,6 +97,7 @@ export class ApiParamsComponent implements OnInit {
   responseStatusText?: string;
   responseIsError: boolean;
   responseTab: "body" | "headers" | "timings";
+  responseContentLength?: number;
   readonly responseInspection: Signal<ResponseInspection | null>;
   requestBody: Array<{ key: string; value: unknown }>;
   requestBodyDataTypes: string[];
@@ -158,6 +159,7 @@ export class ApiParamsComponent implements OnInit {
     this.responseIsError = false;
     this.responseStatusCode = undefined;
     this.responseStatusText = undefined;
+    this.responseContentLength = undefined;
     this.responseTab = "body";
     this.responseInspection = this._responseInspector.latest;
     this.addItemFn = (ctx: ContextType) => this.addItem(ctx);
@@ -273,7 +275,9 @@ export class ApiParamsComponent implements OnInit {
           this.loadingState = false;
           this._responseInspector.markResponse(requestId, endpoint);
           this.captureSuccessResponse(response);
-          this.responseData = this.stringifyPayload(response.body);
+          this.responseData = this.responseBodyIsJson
+            ? this.serializeJsonPayload(response.body)
+            : this.stringifyPayload(response.body);
           const history: PastRequest = {
             method,
             url: endpoint,
@@ -292,9 +296,9 @@ export class ApiParamsComponent implements OnInit {
           this.loadingState = false;
           this._responseInspector.markResponse(requestId, endpoint);
           this.captureErrorResponse(error);
-          this.responseError = this.stringifyPayload(
-            error.error ?? error.message
-          );
+          this.responseError = this.responseBodyIsJson
+            ? this.serializeJsonPayload(error.error ?? error.message)
+            : this.stringifyPayload(error.error ?? error.message);
           const history: PastRequest = {
             method,
             url: endpoint,
@@ -321,6 +325,7 @@ export class ApiParamsComponent implements OnInit {
     this.responseStatusCode = undefined;
     this.responseStatusText = undefined;
     this.responseIsError = false;
+    this.responseContentLength = undefined;
     this.responseTab = "body";
   }
 
@@ -330,6 +335,7 @@ export class ApiParamsComponent implements OnInit {
     this.responseStatusText = response.statusText ?? "";
     this.responseBodyIsJson = this.isJsonPayload(response.body);
     this.responseHeadersView = this.extractHeadersList(response.headers);
+    this.responseContentLength = this.extractContentLength(response.headers);
     this.responseTab = "body";
   }
 
@@ -339,6 +345,7 @@ export class ApiParamsComponent implements OnInit {
     this.responseStatusText = error.statusText ?? "";
     this.responseBodyIsJson = this.isJsonPayload(error.error);
     this.responseHeadersView = this.extractHeadersList(error.headers);
+    this.responseContentLength = this.extractContentLength(error.headers);
     this.responseTab = "body";
   }
 
@@ -358,6 +365,20 @@ export class ApiParamsComponent implements OnInit {
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  private extractContentLength(
+    headers: HttpHeaders | null | undefined
+  ): number | undefined {
+    if (!headers) {
+      return undefined;
+    }
+    const value = headers.get("content-length");
+    if (!value) {
+      return undefined;
+    }
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
   }
 
   private createRequestId(): string {
@@ -449,6 +470,20 @@ export class ApiParamsComponent implements OnInit {
     }, {} as Record<string, unknown>);
 
     return Object.keys(body).length ? body : undefined;
+  }
+
+  private serializeJsonPayload(payload: unknown): string {
+    if (payload === null || payload === undefined) {
+      return "";
+    }
+    if (typeof payload === "string") {
+      return payload;
+    }
+    try {
+      return JSON.stringify(payload);
+    } catch {
+      return this.stringifyPayload(payload);
+    }
   }
 
   private stringifyPayload(payload: unknown): string {

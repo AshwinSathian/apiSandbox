@@ -1,4 +1,4 @@
-<div class="mt-6 w-full rounded-lg bg-black/80 p-4">
+<div class="mt-6 w-full rounded-lg p-4">
   @if (loading) {
   <div class="space-y-3">
     <p-skeleton height="2rem" borderRadius="0.75rem"></p-skeleton>
@@ -21,40 +21,42 @@
     <p-tabpanels>
       <p-tabpanel value="body">
         <div class="space-y-4 text-sm text-slate-200">
-          @if (!isError) {
-          @if (responseBodyIsJson) {
+          @if (!isError) { @if (responseBodyIsJson) {
           <app-json-editor
             name="responseJson"
             [readOnly]="true"
-            [(ngModel)]="responseData"
+            [ngModel]="formattedResponseBody"
             [ngModelOptions]="{ standalone: true }"
             [height]="260"
+            (ngModelChange)="onReadOnlyBodyChange($event)"
           ></app-json-editor>
           } @else {
           <pre
             class="min-h-[180px] whitespace-pre-wrap rounded-lg bg-black/60 p-4 text-sm text-emerald-300"
-          >{{ responseData || 'No body returned.' }}</pre>
-          }
-          } @else {
-          @if (responseBodyIsJson) {
+            >{{ responseData || "No body returned." }}</pre
+          >
+          } } @else { @if (responseBodyIsJson) {
           <app-json-editor
             name="responseErrorJson"
             [readOnly]="true"
-            [(ngModel)]="responseError"
+            [ngModel]="formattedResponseError"
             [ngModelOptions]="{ standalone: true }"
             [height]="260"
+            (ngModelChange)="onReadOnlyErrorChange($event)"
           ></app-json-editor>
           } @else {
           <pre
             class="min-h-[180px] whitespace-pre-wrap rounded-lg bg-black/60 p-4 text-sm text-red-300"
-          >{{ responseError || 'No body returned.' }}</pre>
-          }
-          }
+            >{{ responseError || "No body returned." }}</pre
+          >
+          } }
         </div>
       </p-tabpanel>
       <p-tabpanel value="headers">
         <div class="space-y-4 text-sm text-slate-200">
-          <div class="flex items-center justify-between rounded-lg bg-black/60 p-3">
+          <div
+            class="flex items-center justify-between rounded-lg bg-black/60 p-3"
+          >
             <div class="text-xs uppercase text-slate-400">Status</div>
             <div
               class="text-base font-semibold"
@@ -65,15 +67,15 @@
             >
               @if (responseStatusCode !== undefined) {
               {{ responseStatusCode }}
-              } @else {
-              —
-              }
+              } @else { — }
               <span class="ml-2 text-sm text-slate-300">
-                {{ responseStatusText || '' }}
+                {{ responseStatusText || "" }}
               </span>
             </div>
           </div>
-          <div class="max-h-64 overflow-y-auto rounded-lg border border-white/10">
+          <div
+            class="max-h-64 overflow-y-auto rounded-lg border border-white/10"
+          >
             @if (responseHeaders.length) {
             <table class="w-full text-left text-xs">
               <tbody>
@@ -85,7 +87,7 @@
                     {{ header.name }}
                   </th>
                   <td class="px-3 py-2 text-slate-200">
-                    {{ header.value || '—' }}
+                    {{ header.value || "—" }}
                   </td>
                 </tr>
                 }
@@ -100,8 +102,7 @@
         </div>
       </p-tabpanel>
       <p-tabpanel value="timings">
-        @let inspectionData = inspectionValue;
-        @if (!inspectionData) {
+        @let inspectionData = inspectionValue; @if (!inspectionData) {
         <p class="text-xs text-slate-400">
           Timing data will appear after you send a request.
         </p>
@@ -109,7 +110,9 @@
         <div class="space-y-5 text-sm text-slate-200">
           <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div class="rounded-lg bg-black/60 p-3">
-              <div class="flex items-center gap-2 text-xs uppercase text-slate-400">
+              <div
+                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+              >
                 <span>Duration</span>
                 <span
                   class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
@@ -122,7 +125,9 @@
               </div>
             </div>
             <div class="rounded-lg bg-black/60 p-3">
-              <div class="flex items-center gap-2 text-xs uppercase text-slate-400">
+              <div
+                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+              >
                 <span>Transfer Size</span>
                 <span
                   class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
@@ -135,7 +140,9 @@
               </div>
             </div>
             <div class="rounded-lg bg-black/60 p-3">
-              <div class="flex items-center gap-2 text-xs uppercase text-slate-400">
+              <div
+                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+              >
                 <span>Encoded Body</span>
                 <span
                   class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
@@ -148,7 +155,9 @@
               </div>
             </div>
             <div class="rounded-lg bg-black/60 p-3">
-              <div class="flex items-center gap-2 text-xs uppercase text-slate-400">
+              <div
+                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+              >
                 <span>Decoded Body</span>
                 <span
                   class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
@@ -163,7 +172,9 @@
           </div>
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2 text-xs uppercase text-slate-400">
+              <div
+                class="flex items-center gap-2 text-xs uppercase text-slate-400"
+              >
                 <span>Waterfall</span>
                 <span
                   class="pi pi-info-circle cursor-help text-[10px] text-slate-400"
@@ -179,7 +190,9 @@
             <div class="flex flex-col gap-3">
               @for (phase of getTimingBars(); track phase.key) {
               <div class="flex items-center gap-3">
-                <div class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400">
+                <div
+                  class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400"
+                >
                   <span class="truncate">{{ phase.label }}</span>
                   @if (phase.tooltip) {
                   <span
@@ -206,7 +219,9 @@
             <div class="flex flex-col gap-3">
               @for (bar of getFallbackBars(); track bar.label) {
               <div class="flex items-center gap-3">
-                <div class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400">
+                <div
+                  class="flex w-28 items-center gap-2 text-xs uppercase text-slate-400"
+                >
                   <span class="truncate">{{ bar.label }}</span>
                   @if (bar.tooltip) {
                   <span
@@ -241,4 +256,3 @@
   </p-tabs>
   }
 </div>
-
