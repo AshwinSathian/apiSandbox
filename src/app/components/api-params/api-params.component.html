@@ -26,30 +26,30 @@
       </div>
     </div>
 
-    <div class="flex justify-end">
-      <p-selectButton
-        [options]="editorModeOptions"
-        optionLabel="label"
-        optionValue="value"
-        [(ngModel)]="editorMode"
-        (ngModelChange)="onEditorModeChange($event)"
-        [ngModelOptions]="{ standalone: true }"
-      ></p-selectButton>
-    </div>
-
     <section class="rounded-lg bg-slate-900/40 p-6">
       <div class="hidden md:block">
         <p-tabs [value]="activeTab" (valueChange)="onActiveTabChange($event)">
-          <p-tablist>
-            <p-tab value="headers">
-              <span class="uppercase">Headers</span>
-            </p-tab>
-            @if (isBodyMethod(selectedRequestMethod)) {
-            <p-tab value="body">
-              <span class="uppercase">Body</span>
-            </p-tab>
-            }
-          </p-tablist>
+          <div class="flex items-center justify-between w-full">
+            <p-tablist>
+              <p-tab value="headers">
+                <span class="uppercase">Headers</span>
+              </p-tab>
+              @if (isBodyMethod(selectedRequestMethod)) {
+              <p-tab value="body">
+                <span class="uppercase">Body</span>
+              </p-tab>
+              }
+            </p-tablist>
+
+            <p-selectButton
+              [options]="editorModeOptions"
+              [(ngModel)]="editorMode"
+              (ngModelChange)="onEditorModeChange($event)"
+              [ngModelOptions]="{ standalone: true }"
+              size="small"
+            ></p-selectButton>
+          </div>
+
           <p-tabpanels>
             <p-tabpanel value="headers">
               <ng-container *ngTemplateOutlet="headersContent"></ng-container>

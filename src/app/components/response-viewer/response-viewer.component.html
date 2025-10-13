@@ -22,40 +22,19 @@
         </p-tablist>
 
         @if (canExport) {
-        <div #exportMenuRoot class="flex items-center justify-end">
-          <div class="relative">
-            <button
-              type="button"
-              class="flex items-center gap-2 rounded-md border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-wide text-slate-200 transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-              (click)="toggleExportMenu($event)"
-            >
-              <span class="pi pi-upload text-[11px]"></span>
-              <span>Export</span>
-              <span class="pi pi-chevron-down text-[10px] opacity-70"></span>
-            </button>
-            @if (exportMenuOpen) {
-            <div
-              class="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-white/10 bg-black/90 shadow-xl backdrop-blur"
-            >
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-200 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
-                (click)="copyAsHar()"
-              >
-                <span class="pi pi-copy text-[11px]"></span>
-                <span>Copy as HAR</span>
-              </button>
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 border-t border-white/5 px-3 py-2 text-left text-xs uppercase tracking-wide text-slate-200 transition hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60"
-                (click)="saveNdjson()"
-              >
-                <span class="pi pi-download text-[11px]"></span>
-                <span>Save NDJSON</span>
-              </button>
-            </div>
-            }
-          </div>
+        <div class="flex items-center justify-end">
+          <p-menu #exportMenu [model]="exportItems" [popup]="true"></p-menu>
+
+          <p-button
+            label="Export"
+            icon="pi pi-download"
+            iconPos="left"
+            styleClass="p-button-text text-xs uppercase tracking-wide"
+            (click)="exportMenu.toggle($event)"
+            severity="secondary"
+            outlined
+          >
+          </p-button>
         </div>
         }
       </div>

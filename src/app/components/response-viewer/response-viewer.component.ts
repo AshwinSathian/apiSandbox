@@ -13,17 +13,20 @@ import {
   signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
-import { TabsModule } from "primeng/tabs";
+import { MenuItem } from "primeng/api";
+import { ButtonModule } from "primeng/button";
+import { MenuModule } from "primeng/menu";
 import { SkeletonModule } from "primeng/skeleton";
+import { TabsModule } from "primeng/tabs";
 import { TooltipModule } from "primeng/tooltip";
-import { JsonEditorComponent } from "../json-editor/json-editor.component";
-import { ResponseInspection } from "../../shared/inspect/response-inspector.service";
-import { JsonWorkerService } from "../../shared/json-worker/json-worker.service";
 import {
   InspectorExportEntry,
   toHar,
   toNdjsonLine,
 } from "../../shared/inspect/export.util";
+import { ResponseInspection } from "../../shared/inspect/response-inspector.service";
+import { JsonWorkerService } from "../../shared/json-worker/json-worker.service";
+import { JsonEditorComponent } from "../json-editor/json-editor.component";
 
 type ResponseTab = "body" | "headers" | "timings";
 
@@ -58,6 +61,8 @@ export interface ResponseExportContext {
     SkeletonModule,
     TooltipModule,
     JsonEditorComponent,
+    ButtonModule,
+    MenuModule,
   ],
   templateUrl: "./response-viewer.component.html",
 })
@@ -73,6 +78,21 @@ export class ResponseViewerComponent implements OnChanges {
   @Input() inspection?: Signal<ResponseInspection | null> | null;
   @Input() responseContentLength?: number;
   @Input() exportContext: ResponseExportContext | null = null;
+
+  exportItems: MenuItem[] = [
+    {
+      label: "Copy as HAR",
+      icon: "pi pi-copy",
+      command: () => this.copyAsHar(),
+      styleClass: "uppercase tracking-wider",
+    },
+    {
+      label: "Save NDJSON",
+      icon: "pi pi-download",
+      command: () => this.saveNdjson(),
+      styleClass: "uppercase tracking-wider",
+    },
+  ];
 
   private readonly fallbackInspection = signal<ResponseInspection | null>(null);
 
@@ -112,7 +132,8 @@ export class ResponseViewerComponent implements OnChanges {
     {
       key: "redirect",
       label: "Redirect",
-      description: "Time spent following HTTP redirects before the final request.",
+      description:
+        "Time spent following HTTP redirects before the final request.",
     },
     {
       key: "dns",
@@ -138,12 +159,14 @@ export class ResponseViewerComponent implements OnChanges {
     {
       key: "ttfb",
       label: "TTFB",
-      description: "Time to first byte—server processing plus initial network latency.",
+      description:
+        "Time to first byte—server processing plus initial network latency.",
     },
     {
       key: "content",
       label: "Content",
-      description: "Time to receive the full response body after the first byte arrives.",
+      description:
+        "Time to receive the full response body after the first byte arrives.",
     },
   ];
 
@@ -202,11 +225,15 @@ export class ResponseViewerComponent implements OnChanges {
   }
 
   get formattedResponseError(): string {
-   return this.formattedError;
+    return this.formattedError;
   }
 
   get canExport(): boolean {
-    return !this.loading && !!this.exportContext && this.responseStatusCode !== undefined;
+    return (
+      !this.loading &&
+      !!this.exportContext &&
+      this.responseStatusCode !== undefined
+    );
   }
 
   @HostListener("document:click", ["$event"])
@@ -343,7 +370,10 @@ export class ResponseViewerComponent implements OnChanges {
     this.lastErrorResult = this.formattedError;
   }
 
-  private async formatAndAssign(source: string, kind: "body" | "error"): Promise<void> {
+  private async formatAndAssign(
+    source: string,
+    kind: "body" | "error"
+  ): Promise<void> {
     if (kind === "body" && this.lastBodySource === source) {
       this.formattedBody = this.lastBodyResult ?? source;
       return;
@@ -354,9 +384,7 @@ export class ResponseViewerComponent implements OnChanges {
     }
 
     const token =
-      kind === "body"
-        ? ++this.bodyFormatToken
-        : ++this.errorFormatToken;
+      kind === "body" ? ++this.bodyFormatToken : ++this.errorFormatToken;
 
     const useWorker = this.shouldUseWorker(source);
 
@@ -381,7 +409,11 @@ export class ResponseViewerComponent implements OnChanges {
     }
   }
 
-  private assignFormatted(kind: "body" | "error", source: string, value: string): void {
+  private assignFormatted(
+    kind: "body" | "error",
+    source: string,
+    value: string
+  ): void {
     if (kind === "body") {
       this.formattedBody = value;
       this.lastBodySource = source;
@@ -453,7 +485,8 @@ export class ResponseViewerComponent implements OnChanges {
       : new Date().toISOString();
 
     const duration =
-      typeof inspection?.duration === "number" && Number.isFinite(inspection.duration)
+      typeof inspection?.duration === "number" &&
+      Number.isFinite(inspection.duration)
         ? inspection.duration
         : Math.max(
             0,
@@ -484,13 +517,16 @@ export class ResponseViewerComponent implements OnChanges {
   }
 
   private buildResponseHeadersRecord(): Record<string, string> {
-    return this.responseHeaders.reduce<Record<string, string>>((acc, header) => {
-      if (!header?.name) {
+    return this.responseHeaders.reduce<Record<string, string>>(
+      (acc, header) => {
+        if (!header?.name) {
+          return acc;
+        }
+        acc[header.name] = header.value ?? "";
         return acc;
-      }
-      acc[header.name] = header.value ?? "";
-      return acc;
-    }, {});
+      },
+      {}
+    );
   }
 
   private createFallbackId(): string {
@@ -575,7 +611,9 @@ export class ResponseViewerComponent implements OnChanges {
   }
 }
 
-function normalizeHeaderRecord(record: Record<string, string>): Record<string, string> {
+function normalizeHeaderRecord(
+  record: Record<string, string>
+): Record<string, string> {
   return Object.entries(record ?? {}).reduce<Record<string, string>>(
     (acc, [key, value]) => {
       if (!key) {
