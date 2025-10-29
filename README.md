@@ -1,89 +1,133 @@
 # API Sandbox
 
-API Sandbox is an Angular application for exploring REST APIs from the browser with a modern, responsive UI. It helps developers prototype requests across the most common HTTP verbs, inspect responses, and keep lightweight request history without relying on external tooling.
+A focused, fast, and friendly web app for trying APIs without the overhead of a full‑blown client. Paste an endpoint, pick a method, set headers/body, hit **Send**—get a clean response with useful insights and shareable exports.
 
-## Overview
+> Built to keep you in flow while exploring APIs, debugging issues, and documenting endpoints.
 
-The app lets you compose GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS requests, manage custom headers and body payloads, and review results inline. Request history is persisted using IndexedDB (with an in-memory fallback) so you can revisit previous calls even across sessions.
+**Live demo:** https://api-sandbox.ashwinsathian.com/
 
-## Features
+---
 
-- Compose HTTP GET, POST, PUT, PATCH, DELETE, HEAD, and OPTIONS requests with URL validation
-- Automatically toggle request body editors for verbs that support payloads
-- Add, edit, and remove custom headers and typed body fields
-- Toggle between JSON-friendly input components, including boolean selectors
-- Persist request history locally with IndexedDB, including timestamps and status
-- Reload a previous request into the editor with a single click
-- Responsive layout that switches between tabs (desktop) and accordions (mobile)
+## Why use API Sandbox?
 
-## Tech Stack
+- **Zero clutter, just the essentials.** Compose a request and see a clean, structured response.
+- **Great defaults.** Sensible method/body pairing, helpful validation, and safe fallbacks.
+- **Shareable results.** Export a request/response as **HAR 1.2** or **NDJSON** lines for teammates and tooling.
+- **History that actually helps.** Saved **per‑browser, per‑device** using **IndexedDB (IDB)**—no servers, no tracking.
+- **Dark‑first UI.** Minimal, accessible, and keyboard‑friendly.
 
-- [Angular 20](https://angular.dev/) with standalone components
-- [PrimeNG](https://primeng.org/) UI components and theming
-- [Tailwind CSS](https://tailwindcss.com/) utility classes
-- [idb](https://github.com/jakearchibald/idb) IndexedDB promise wrapper
-- TypeScript, RxJS, and the Angular CLI tooling
+---
 
-## Getting Started
+## Highlights
 
-### Prerequisites
+- **Request Composer**
 
-- Node.js 18 or later (Angular 20 requires Node 18.19+ or 20.11+)
-- npm 9+ (ships with current Node LTS)
+  - Methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS`
+  - URL field with live validation
+  - Headers editor
+  - Body editor (enabled only when it makes sense)
+  - Optional **Monaco JSON editor** mode for power users
 
-### Installation
+- **Response Viewer**
+
+  - Pretty JSON with collapsible sections
+  - Headers & meta tabs
+  - Timing (DNS → Connect → TTFB → Total) and size breakdowns
+  - Copy helpers and raw view
+
+- **Exports**
+
+  - **HAR 1.2** – Standard archive for HTTP requests/responses (great for bug reports)
+  - **NDJSON** – Line‑by‑line JSON records for logs and automation
+  - Large bodies are safely truncated/omitted in exports to keep files lightweight
+
+- **History**
+  - Stored **locally in your browser via IndexedDB**
+  - Re‑run, rename, and delete entries
+  - Quick filters by method and URL
+
+---
+
+## Quick Start (Local)
+
+> Requires **Node 18+** and a modern browser. Angular CLI is optional; the scripts below will run the dev server.
 
 ```bash
+# 1) Clone the repo
+git clone https://github.com/AshwinSathian/apiSandbox.git
+cd api-sandbox
+
+# 2) Install dependencies
 npm install
+# (or: npm ci)
+
+# 3) Run the app (Angular dev server)
+ng serve --open
+# then open http://localhost:4200
+
+# 4) Production build (optional)
+npm run build
 ```
 
-### Run the development server
+**Notes**
 
-```bash
-npx ng serve
-```
+- Calling third‑party APIs may require CORS to be enabled by that API. For private APIs, consider a proxy if needed.
+- The **History** is stored locally in **IndexedDB** and is **specific to the browser and device** you’re using.
 
-This starts the app on `http://localhost:4200/` with hot reload enabled.
+---
 
-### Build for production
+## How it works (in 60 seconds)
 
-```bash
-npx ng build
-```
+- The **Request Composer** accepts a URL, method, headers, and (if applicable) a JSON body.
+- The app sends the request and shows:
+  - **Body** (pretty‑printed for JSON)
+  - **Headers**
+  - **Meta** (status, duration, sizes)
+- Each call can be **saved to History** for later replay or export.
+- You can **export** any call as HAR or NDJSON to share with teammates or attach to tickets.
 
-The optimized output is written to the `dist/` directory.
+---
 
-### Run unit tests
+## Privacy & Data
 
-```bash
-npx ng test
-```
+- Your request history is stored **locally** in your browser via **IndexedDB (IDB)**.
+- **Nothing is uploaded** to our servers.
+- You’re in control: clear individual entries or wipe the entire history anytime.
 
-The project uses Karma and Jasmine (Angular CLI defaults) for unit testing.
+---
 
-## Project Structure
+## FAQ
 
-- `src/app/components/api-params/` – main request builder UI (desktop & mobile layouts)
-- `src/app/models/` – TypeScript interfaces for request history and shared types
-- `src/app/data/idb.service.ts` – IndexedDB storage with in-memory fallback
-- `src/app/services/` – HTTP integration services
-- `public/` – static assets served as-is
+**Does this replace Postman/Insomnia?**  
+No. API Sandbox is intentionally smaller and faster for everyday calls, docs checks, and quick debugging.
 
-## Local Data Storage
+**Why HAR and NDJSON?**  
+They’re widely accepted by browsers, proxies, and observability tools. HAR is great for attaching to bug reports. NDJSON is ideal for pipelines and log ingestion.
 
-Request history is stored in IndexedDB using the `api-sandbox` database. When IndexedDB is unavailable (e.g., private browsing), the service transparently falls back to an in-memory store so the UI remains functional.
+**Can I use form data or files?**  
+Current focus is JSON APIs. Form/file helpers may land later.
 
-## Browser Support
+**Will there be a light theme?**  
+Possibly. The app is dark‑first today.
 
-The project targets the latest two versions of major Chromium, Firefox, Safari, iOS Safari, and Edge browsers plus Firefox ESR. See the [`browserslist`](browserslist) file for exact targets.
+---
 
 ## Contributing
 
-1. Fork the repository and create a feature branch.
-2. Implement your changes with accompanying tests where practical.
-3. Run the relevant `ng` commands (`serve`, `build`, `test`) to validate behavior.
-4. Submit a pull request describing the motivation and any notable decisions.
+Contributions are welcome—bug reports, small UX wins, docs tweaks, or focused features that keep the app fast and simple. Please open an issue to propose changes before a PR, and keep scope tight.
+
+---
+
+## Roadmap (public intent, not a contract)
+
+- JSONPath search/filter in responses
+- Advanced auth helpers
+- Request collections and sharing
+- CSV/XLSX preview & import flows
+- PWA mode for offline use
+
+---
 
 ## License
 
-No explicit license has been provided. If you plan to use or redistribute this project, please open an issue or contact the repository owner to clarify licensing terms.
+MIT © Ashwin Sathian
