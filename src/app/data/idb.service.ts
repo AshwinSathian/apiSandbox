@@ -10,6 +10,7 @@ import {
 } from "idb";
 import {
   Collection,
+  CollectionExport,
   CollectionId,
   Folder,
   FolderId,
@@ -58,6 +59,7 @@ interface ApiSandboxDB extends DBSchema {
     value: Collection;
     indexes: {
       "by-order": number;
+      "by-name": string;
     };
   };
   folders: {
@@ -91,6 +93,7 @@ interface ApiSandboxDB extends DBSchema {
     value: SecretDoc;
     indexes: {
       "by-environmentId": EnvironmentId | null | undefined;
+      "by-name": string;
     };
   };
   meta: {
@@ -305,7 +308,7 @@ export class IdbService {
     const index = tx.objectStore("collections").index("by-order");
     const results = await index.getAll();
     await tx.done;
-    return results;
+    return this.ensureIds(results);
   }
 
   async createCollection(payload: {
@@ -316,12 +319,15 @@ export class IdbService {
     const tx = await this.txReadWrite(["collections"]);
     const store = tx.objectStore("collections");
     return this.commitOrRollback(tx, async () => {
+      const meta = this.createMeta();
       const doc: Collection = {
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         name: payload.name.trim(),
         description: payload.description?.trim() || undefined,
         order: await this.nextOrder(store.index("by-order")),
       };
+      this.ensureId(doc);
       await store.add(doc);
       return doc;
     });
@@ -346,6 +352,7 @@ export class IdbService {
         existing.description = updates.description.trim() || undefined;
       }
       existing.meta = this.touchMeta(existing.meta);
+      this.ensureId(existing);
       await store.put(existing);
       return existing;
     });
@@ -366,10 +373,12 @@ export class IdbService {
 
       const duplicate: Collection = {
         ...this.clone(original),
+        id: this.randomId(),
         meta: this.createMeta(),
         name: `${original.name} copy`,
         order: await this.nextOrder(collectionStore.index("by-order")),
       };
+      this.ensureId(duplicate);
       await collectionStore.add(duplicate);
 
       const folderIndex = folderStore.index("by-collectionId");
@@ -385,6 +394,7 @@ export class IdbService {
       const folderClones = sourceFolders.map((folder) => {
         const clone: Folder = {
           ...this.clone(folder),
+          id: this.randomId(),
           meta: this.createMeta(),
           collectionId: duplicate.meta.id,
           order: folder.order,
@@ -403,6 +413,7 @@ export class IdbService {
       for (const request of sourceRequests) {
         const clone: RequestDoc = {
           ...this.clone(request),
+          id: this.randomId(),
           meta: this.createMeta(),
           collectionId: duplicate.meta.id,
           order: request.order,
@@ -452,13 +463,95 @@ export class IdbService {
     });
   }
 
+  async getCollectionExport(id: CollectionId): Promise<CollectionExport | null> {
+    await this.ensurePersistentSupport();
+    const tx = await this.txReadonly(["collections", "folders", "requests"]);
+    const collection = await tx.objectStore("collections").get(id);
+    if (!collection) {
+      await tx.done;
+      return null;
+    }
+    const folderIndex = tx.objectStore("folders").index("by-collectionId");
+    const requestIndex = tx.objectStore("requests").index("by-collectionId");
+    const [folders, requests] = await Promise.all([
+      folderIndex.getAll(id),
+      requestIndex.getAll(id),
+    ]);
+    await tx.done;
+    return {
+      meta: collection.meta,
+      collection: this.ensureId(collection),
+      folders: this.ensureIds(folders),
+      requests: this.ensureIds(requests),
+    };
+  }
+
+  async importCollectionExport(
+    payload: CollectionExport,
+    options?: { duplicateAsNew?: boolean }
+  ): Promise<Collection | null> {
+    await this.ensurePersistentSupport();
+    const tx = await this.txReadWrite(["collections", "folders", "requests"]);
+    const collectionStore = tx.objectStore("collections");
+    const folderStore = tx.objectStore("folders");
+    const requestStore = tx.objectStore("requests");
+
+    return this.commitOrRollback(tx, async () => {
+      const data = this.clone(payload);
+      this.ensureId(data.collection);
+      data.folders = this.ensureIds(data.folders ?? []);
+      data.requests = this.ensureIds(data.requests ?? []);
+      const collectionId = data.collection?.meta?.id ?? data.collection?.id;
+      if (!collectionId) {
+        throw new Error("Collection payload is missing an identifier.");
+      }
+
+      if (!options?.duplicateAsNew) {
+        await collectionStore.delete(collectionId);
+        const [folders, requests] = await Promise.all([
+          folderStore.index("by-collectionId").getAll(collectionId),
+          requestStore.index("by-collectionId").getAll(collectionId),
+        ]);
+        for (const folder of folders) {
+          await folderStore.delete(folder.meta.id);
+        }
+        for (const request of requests) {
+          await requestStore.delete(request.meta.id);
+        }
+      }
+
+      await collectionStore.put(data.collection);
+      for (const folder of data.folders) {
+        folder.collectionId = collectionId;
+        this.ensureId(folder);
+        await folderStore.put(folder);
+      }
+      for (const request of data.requests) {
+        request.collectionId = collectionId;
+        if (
+          request.folderId &&
+          !data.folders.some(
+            (folder) =>
+              folder.meta.id === request.folderId || folder.id === request.folderId
+          )
+        ) {
+          request.folderId = undefined;
+        }
+        this.ensureId(request);
+        await requestStore.put(request);
+      }
+      return data.collection;
+    });
+  }
+
   async listFolders(collectionId: CollectionId): Promise<Folder[]> {
     await this.ensurePersistentSupport();
     const tx = await this.txReadonly(["folders"]);
     const index = tx.objectStore("folders").index("by-collectionId");
     const items = await index.getAll(collectionId);
     await tx.done;
-    return items.sort((a, b) => a.order - b.order || a.meta.id.localeCompare(b.meta.id));
+    const sorted = items.sort((a, b) => a.order - b.order || a.meta.id.localeCompare(b.meta.id));
+    return this.ensureIds(sorted);
   }
 
   async createFolder(payload: {
@@ -471,14 +564,17 @@ export class IdbService {
     const tx = await this.txReadWrite(["folders"]);
     const store = tx.objectStore("folders");
     return this.commitOrRollback(tx, async () => {
+      const meta = this.createMeta();
       const doc: Folder = {
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         collectionId: payload.collectionId,
         parentFolderId: payload.parentFolderId,
         name: payload.name.trim(),
         order:
           payload.order ?? (await this.nextOrder(store.index("by-order"))),
       };
+      this.ensureId(doc);
       await store.add(doc);
       return doc;
     });
@@ -495,6 +591,7 @@ export class IdbService {
       }
       doc.name = name.trim();
       doc.meta = this.touchMeta(doc.meta);
+      this.ensureId(doc);
       await store.put(doc);
       return doc;
     });
@@ -511,24 +608,30 @@ export class IdbService {
       if (!original) {
         return null;
       }
+      const meta = this.createMeta();
       const clone: Folder = {
         ...this.clone(original),
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         name: `${original.name} copy`,
         order: await this.nextOrder(folderStore.index("by-order")),
       };
+      this.ensureId(clone);
       await folderStore.add(clone);
 
       const requestIndex = requestStore.index("by-folderId");
       const requests = await requestIndex.getAll(original.meta.id);
       for (const request of requests) {
+        const reqMeta = this.createMeta();
         const copy: RequestDoc = {
           ...this.clone(request),
-          meta: this.createMeta(),
+          id: reqMeta.id,
+          meta: reqMeta,
           folderId: clone.meta.id,
           collectionId: original.collectionId,
           order: await this.nextOrder(requestStore.index("by-order")),
         };
+        this.ensureId(copy);
         await requestStore.add(copy);
       }
       return clone;
@@ -572,7 +675,8 @@ export class IdbService {
     const index = tx.objectStore("requests").index("by-collectionId");
     const items = await index.getAll(collectionId);
     await tx.done;
-    return items.sort((a, b) => a.order - b.order || a.meta.id.localeCompare(b.meta.id));
+    const sorted = items.sort((a, b) => a.order - b.order || a.meta.id.localeCompare(b.meta.id));
+    return this.ensureIds(sorted);
   }
 
   async createRequest(payload: {
@@ -589,8 +693,10 @@ export class IdbService {
     const tx = await this.txReadWrite(["requests"]);
     const store = tx.objectStore("requests");
     return this.commitOrRollback(tx, async () => {
+      const meta = this.createMeta();
       const doc: RequestDoc = {
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         collectionId: payload.collectionId,
         folderId: payload.folderId,
         name: payload.name.trim(),
@@ -601,6 +707,7 @@ export class IdbService {
         headers: payload.headers ?? {},
         body: payload.body,
       };
+      this.ensureId(doc);
       await store.add(doc);
       return doc;
     });
@@ -617,6 +724,7 @@ export class IdbService {
       }
       doc.name = name.trim();
       doc.meta = this.touchMeta(doc.meta);
+      this.ensureId(doc);
       await store.put(doc);
       return doc;
     });
@@ -631,12 +739,15 @@ export class IdbService {
       if (!doc) {
         return null;
       }
+      const meta = this.createMeta();
       const clone: RequestDoc = {
         ...this.clone(doc),
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         name: `${doc.name} copy`,
         order: await this.nextOrder(store.index("by-order")),
       };
+      this.ensureId(clone);
       await store.add(clone);
       return clone;
     });
@@ -673,7 +784,7 @@ export class IdbService {
     const index = tx.objectStore("environments").index("by-order");
     const items = await index.getAll();
     await tx.done;
-    return items;
+    return this.ensureIds(items);
   }
 
   async createEnvironment(payload: {
@@ -685,13 +796,16 @@ export class IdbService {
     const tx = await this.txReadWrite(["environments"]);
     const store = tx.objectStore("environments");
     return this.commitOrRollback(tx, async () => {
+      const meta = this.createMeta();
       const doc: EnvironmentDoc = {
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         name: payload.name.trim(),
         description: payload.description?.trim() || undefined,
         vars: payload.vars ?? {},
         order: await this.nextOrder(store.index("by-order")),
       };
+      this.ensureId(doc);
       await store.add(doc);
       return doc;
     });
@@ -719,6 +833,7 @@ export class IdbService {
         doc.vars = { ...updates.vars };
       }
       doc.meta = this.touchMeta(doc.meta);
+      this.ensureId(doc);
       await store.put(doc);
       return doc;
     });
@@ -733,12 +848,15 @@ export class IdbService {
       if (!doc) {
         return null;
       }
+      const meta = this.createMeta();
       const clone: EnvironmentDoc = {
         ...this.clone(doc),
-        meta: this.createMeta(),
+        id: meta.id,
+        meta,
         name: `${doc.name} copy`,
         order: await this.nextOrder(store.index("by-order")),
       };
+      this.ensureId(clone);
       await store.add(clone);
       return clone;
     });
@@ -806,11 +924,13 @@ export class IdbService {
     const store = tx.objectStore("secrets");
     await this.commitOrRollback(tx, async () => {
       const doc: SecretDoc = {
+        id: params.id,
         meta: this.createMetaWithId(params.id),
         name: params.name,
         environmentId: params.environmentId,
         envelope: params.envelope,
       };
+      this.ensureId(doc as unknown as { meta: Meta; id?: string });
       await store.put(doc);
     });
   }
@@ -821,6 +941,16 @@ export class IdbService {
     const doc = await tx.objectStore("secrets").get(id);
     await tx.done;
     return doc?.envelope ?? null;
+  }
+
+  async peekSecretEnvelope(): Promise<SecretEnvelope | null> {
+    await this.ensurePersistentSupport();
+    const tx = await this.txReadonly(["secrets"]);
+    const store = tx.objectStore("secrets");
+    const cursor = await store.openCursor();
+    const envelope = cursor?.value?.envelope ?? null;
+    await tx.done;
+    return envelope;
   }
 
   async txReadWrite(
@@ -980,9 +1110,11 @@ export class IdbService {
     if (!db.objectStoreNames.contains("collections")) {
       store = db.createObjectStore("collections", { keyPath: "meta.id" });
       this.ensureIndex(store, "by-order", "order");
+      this.ensureIndex(store, "by-name", "name", { unique: false });
     } else {
       store = transaction.objectStore("collections");
       this.ensureIndex(store, "by-order", "order");
+      this.ensureIndex(store, "by-name", "name", { unique: false });
     }
   }
 
@@ -1046,9 +1178,11 @@ export class IdbService {
     if (!db.objectStoreNames.contains("secrets")) {
       store = db.createObjectStore("secrets", { keyPath: "meta.id" });
       this.ensureIndex(store, "by-environmentId", "environmentId", { unique: false });
+      this.ensureIndex(store, "by-name", "name", { unique: false });
     } else {
       store = transaction.objectStore("secrets");
       this.ensureIndex(store, "by-environmentId", "environmentId", { unique: false });
+      this.ensureIndex(store, "by-name", "name", { unique: false });
     }
   }
 
@@ -1154,6 +1288,32 @@ export class IdbService {
     // Scaffold for forward migrations. No-op for now.
   }
 
+  async resetDatabase(): Promise<void> {
+    if (this.dbPromise) {
+      try {
+        const db = await this.dbPromise;
+        db.close();
+      } catch {
+        // ignore
+      }
+    }
+
+    if (typeof indexedDB !== "undefined") {
+      await new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase(DB_NAME);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error ?? new Error("Failed to delete database"));
+        request.onblocked = () => resolve();
+      }).catch(() => undefined);
+    }
+
+    this.dbPromise = undefined;
+    this.initialized = false;
+    this.useMemoryFallback = false;
+    this.memoryStore = [];
+    this.memorySequence = 1;
+  }
+
   private async ensurePersistentSupport(): Promise<void> {
     await this.init();
     if (this.useMemoryFallback) {
@@ -1182,6 +1342,18 @@ export class IdbService {
       return structuredClone(value);
     }
     return JSON.parse(JSON.stringify(value)) as T;
+  }
+
+  private ensureId<T extends { meta: Meta; id?: string }>(doc: T): T {
+    if (!doc.id) {
+      (doc as T & { id: string }).id = doc.meta.id;
+    }
+    return doc;
+  }
+
+  private ensureIds<T extends { meta: Meta; id?: string }>(docs: T[]): T[] {
+    docs.forEach((doc) => this.ensureId(doc));
+    return docs;
   }
 
   private logError(message: string, error?: unknown): void {

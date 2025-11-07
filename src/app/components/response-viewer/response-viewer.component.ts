@@ -15,6 +15,7 @@ import {
 import { FormsModule } from "@angular/forms";
 import { MenuItem } from "primeng/api";
 import { ButtonModule } from "primeng/button";
+import { InputTextModule } from "primeng/inputtext";
 import { MenuModule } from "primeng/menu";
 import { SkeletonModule } from "primeng/skeleton";
 import { TabsModule } from "primeng/tabs";
@@ -25,7 +26,10 @@ import {
   toNdjsonLine,
 } from "../../shared/inspect/export.util";
 import { ResponseInspection } from "../../shared/inspect/response-inspector.service";
-import { JsonWorkerService } from "../../shared/json-worker/json-worker.service";
+import {
+  JsonWorkerService,
+  WorkerSearchResult,
+} from "../../shared/json-worker/json-worker.service";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
 
 type ResponseTab = "body" | "headers" | "timings";
@@ -63,6 +67,7 @@ export interface ResponseExportContext {
     JsonEditorComponent,
     ButtonModule,
     MenuModule,
+    InputTextModule,
   ],
   templateUrl: "./response-viewer.component.html",
 })
@@ -184,12 +189,20 @@ export class ResponseViewerComponent implements OnChanges {
   private lastErrorSource: string | null = null;
   private lastErrorResult: string | null = null;
   exportMenuOpen = false;
+  searchQuery = "";
+  searchResult: WorkerSearchResult | null = null;
+  searchActiveIndex = 0;
+  searchPending = false;
+  private searchToken = 0;
 
   @ViewChild("exportMenuRoot") exportMenuRef?: ElementRef<HTMLDivElement>;
 
   constructor(private readonly jsonWorker: JsonWorkerService) {}
 
   ngOnChanges(changes: SimpleChanges): void {
+    if ("responseData" in changes || "responseError" in changes) {
+      this.resetSearchState();
+    }
     if (
       ("loading" in changes && changes["loading"]?.currentValue) ||
       ("exportContext" in changes && !this.exportContext) ||
@@ -214,6 +227,7 @@ export class ResponseViewerComponent implements OnChanges {
 
     if ("responseBodyIsJson" in changes && !this.responseBodyIsJson) {
       this.resetFormattedValues();
+      this.resetSearchState();
     }
   }
 
@@ -442,6 +456,112 @@ export class ResponseViewerComponent implements OnChanges {
     } catch {
       return input;
     }
+  }
+
+  async beautifyResponse(): Promise<void> {
+    const source = this.getActiveJsonSource();
+    if (!source) {
+      return;
+    }
+    try {
+      const formatted = await this.jsonWorker.parsePretty(source, 2);
+      if (this.isError) {
+        this.formattedError = formatted;
+        this.lastErrorResult = formatted;
+        this.lastErrorSource = source;
+      } else {
+        this.formattedBody = formatted;
+        this.lastBodyResult = formatted;
+        this.lastBodySource = source;
+      }
+    } catch {
+      // ignore formatting failures
+    }
+  }
+
+  async minifyResponse(): Promise<void> {
+    const source = this.getActiveJsonSource();
+    if (!source) {
+      return;
+    }
+    try {
+      const minified = await this.jsonWorker.minify(source);
+      if (this.isError) {
+        this.formattedError = minified;
+        this.lastErrorResult = minified;
+        this.lastErrorSource = source;
+      } else {
+        this.formattedBody = minified;
+        this.lastBodyResult = minified;
+        this.lastBodySource = source;
+      }
+    } catch {
+      // ignore formatting failures
+    }
+  }
+
+  async onSearchQueryChange(value: string): Promise<void> {
+    this.searchQuery = value;
+    this.searchActiveIndex = 0;
+    const trimmed = value.trim();
+    const corpus = this.formattedResponseBody;
+    if (!trimmed || !corpus) {
+      this.searchResult = null;
+      this.searchPending = false;
+      this.searchToken++;
+      return;
+    }
+    const token = ++this.searchToken;
+    this.searchPending = true;
+    try {
+      const result = await this.jsonWorker.search(corpus, trimmed);
+      if (token === this.searchToken) {
+        this.searchResult = result;
+        this.searchActiveIndex = result.count ? 0 : 0;
+      }
+    } catch {
+      if (token === this.searchToken) {
+        this.searchResult = null;
+      }
+    } finally {
+      if (token === this.searchToken) {
+        this.searchPending = false;
+      }
+    }
+  }
+
+  stepSearch(direction: number): void {
+    const result = this.searchResult;
+    if (!result || !result.count) {
+      return;
+    }
+    const next =
+      (this.searchActiveIndex + direction + result.count) % result.count;
+    this.searchActiveIndex = next;
+  }
+
+  get currentSearchExcerpt(): string | null {
+    const excerpts = this.searchResult?.excerpts;
+    if (!excerpts?.length) {
+      return null;
+    }
+    return excerpts[this.searchActiveIndex]?.context ?? excerpts[0]?.context ?? null;
+  }
+
+  private resetSearchState(): void {
+    this.searchQuery = "";
+    this.searchResult = null;
+    this.searchActiveIndex = 0;
+    this.searchPending = false;
+    this.searchToken++;
+  }
+
+  private getActiveJsonSource(): string | null {
+    if (!this.responseBodyIsJson) {
+      return null;
+    }
+    const raw = this.isError ? this.responseError : this.responseData;
+    return raw || null;
   }
 
   onReadOnlyBodyChange(value: string): void {

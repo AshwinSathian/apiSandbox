@@ -1,7 +1,7 @@
 import { collectVariableTokens } from "./env-resolution.util";
 
-describe("env-resolution.util", () => {
-  it("resolves variables using request > env > global order", () => {
+describe("variable resolution", () => {
+  it("prefers request variables over environment and globals", () => {
     const tokens = collectVariableTokens(
       {
         url: "https://{{host}}/data",
@@ -10,11 +10,12 @@ describe("env-resolution.util", () => {
       {
         requestVars: { host: "local.request" },
         environment: {
-          meta: { id: "env", createdAt: 1, updatedAt: 1, version: 1 },
+          id: "env-1",
+          meta: { id: "env-1", createdAt: 1, updatedAt: 1, version: 1 },
           name: "Env",
           order: 1,
           vars: { host: "env.host", token: "env-token" },
-        },
+        } as any,
         globals: { token: "global-token" },
       }
     );
@@ -24,5 +25,15 @@ describe("env-resolution.util", () => {
     expect(host?.source).toBe("request");
     expect(token?.value).toBe("env-token");
     expect(token?.source).toBe("environment");
+  });
+
+  it("flags missing variables without blocking", () => {
+    const tokens = collectVariableTokens(
+      { url: "https://{{missing}}/api" },
+      { requestVars: {}, environment: null, globals: {} }
+    );
+    const missing = tokens.find((t) => t.source === "missing");
+    expect(missing?.key).toBe("missing");
+    expect(missing?.value).toBeUndefined();
   });
 });

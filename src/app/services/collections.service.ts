@@ -1,6 +1,7 @@
 import { Injectable, Signal, computed, signal } from "@angular/core";
 import {
   Collection,
+  CollectionExport,
   CollectionId,
   Folder,
   FolderId,
@@ -8,6 +9,7 @@ import {
   RequestDocId,
 } from "../models/collections.models";
 import { IdbService } from "../data/idb.service";
+import { serializeDeterministic } from "../shared/collections/collection-io.util";
 
 export interface CollectionTree {
   collection: Collection;
@@ -161,5 +163,22 @@ export class CollectionsService {
 
   getCollectionTree(id: CollectionId): CollectionTree | undefined {
     return this.treeState().find((entry) => entry.collection.meta.id === id);
+  }
+
+  async exportCollectionJson(id: CollectionId): Promise<string | null> {
+    const snapshot = await this.idb.getCollectionExport(id);
+    if (!snapshot) {
+      return null;
+    }
+    return serializeDeterministic(snapshot);
+  }
+
+  async importCollection(
+    payload: CollectionExport,
+    options?: { duplicateAsNew?: boolean }
+  ): Promise<Collection | null> {
+    const collection = await this.idb.importCollectionExport(payload, options);
+    await this.refresh();
+    return collection;
   }
 }

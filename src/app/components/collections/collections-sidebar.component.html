@@ -9,6 +9,15 @@
     <div class="flex items-center gap-2">
       <button
         pButton
+        icon="pi pi-bolt"
+        size="small"
+        text
+        severity="secondary"
+        (click)="openCommandPalette()"
+        title="Command palette (⌘K)"
+      ></button>
+      <button
+        pButton
         icon="pi pi-upload"
         size="small"
         text
@@ -89,11 +98,57 @@
       }
     </ul>
   </div>
-  } @else if (pendingImport) {
-  <div class="space-y-1 text-sm text-slate-300">
-    <p class="font-semibold text-white">{{ pendingImport.collection.name }}</p>
-    <p>{{ pendingImport.requests.length }} requests</p>
-    <p>{{ pendingImport.folders.length }} folders</p>
+  } @else if (importAnalysis?.payload) {
+  <div class="space-y-3 text-sm text-slate-300">
+    <div>
+      <p class="text-xs uppercase tracking-widest text-slate-500">Collection</p>
+      <p class="text-lg font-semibold text-white">
+        {{ importAnalysis.payload.collection.name }}
+      </p>
+      <p class="text-xs text-slate-400">
+        {{ importAnalysis.summary?.folders || 0 }} folders ·
+        {{ importAnalysis.summary?.requests || 0 }} requests
+      </p>
+    </div>
+    <label
+      class="flex items-center justify-between rounded-lg border border-slate-800/70 bg-slate-900/40 px-3 py-2 text-sm text-slate-200 cursor-pointer"
+    >
+      <div>
+        <p class="text-xs uppercase tracking-widest text-slate-500">Duplicate as new</p>
+        <p class="text-[11px] text-slate-400">
+          Keeps the original intact and remaps every ID.
+        </p>
+      </div>
+      <p-checkbox
+        binary="true"
+        [(ngModel)]="importDuplicateAsNew"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="toggleDuplicateImport($event)"
+      ></p-checkbox>
+    </label>
+    @if (importAnalysis.plan?.length) {
+    <div class="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-800/60 p-3">
+      @for (entry of importAnalysis.plan; track entry.id) {
+      <div class="flex items-center justify-between rounded-md bg-slate-900/60 px-3 py-2 text-xs text-slate-200">
+        <div>
+          <p class="font-semibold capitalize">{{ entry.type }} · {{ entry.name }}</p>
+          <p class="text-[11px] text-slate-400">
+            {{ entry.action === 'create' ? 'create new' : 'overwrite existing' }}
+          </p>
+        </div>
+        <span
+          class="rounded-full px-2 py-1 text-[10px] uppercase"
+          [ngClass]="{
+            'bg-emerald-600/20 text-emerald-200 border border-emerald-500/40': entry.action === 'create',
+            'bg-amber-600/20 text-amber-200 border border-amber-500/40': entry.action === 'overwrite'
+          }"
+        >
+          {{ entry.action }}
+        </span>
+      </div>
+      }
+    </div>
+    }
   </div>
   } @else {
   <p class="text-sm text-slate-300">
@@ -106,7 +161,7 @@
       <button
         pButton
         label="Import"
-        [disabled]="!pendingImport || importErrors.length > 0"
+        [disabled]="!importAnalysis?.payload || importErrors.length > 0"
         (click)="confirmImport()"
       ></button>
     </div>
@@ -167,6 +222,43 @@
       ></button>
     </div>
   </ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Command Palette"
+  [(visible)]="commandPaletteVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  (onHide)="closeCommandPalette()"
+>
+  <div class="flex flex-col gap-3">
+    <input
+      pInputText
+      placeholder="Type a command"
+      class="w-full"
+      [(ngModel)]="commandPaletteQuery"
+      [ngModelOptions]="{ standalone: true }"
+      (keydown.enter)="executeFirstPaletteAction()"
+      autofocus
+    />
+    <div class="max-h-72 space-y-2 overflow-y-auto">
+      @if (filteredPaletteActions.length) {
+      @for (action of filteredPaletteActions; track action.id) {
+      <button
+        type="button"
+        class="w-full rounded-lg border border-slate-800/70 bg-slate-900/30 px-3 py-2 text-left text-sm text-slate-200 hover:bg-slate-800/40"
+        (click)="executePaletteAction(action)"
+      >
+        {{ action.label }}
+      </button>
+      }
+      } @else {
+      <div class="rounded-lg border border-dashed border-slate-700 px-3 py-4 text-center text-xs text-slate-500">
+        No matching commands.
+      </div>
+      }
+    </div>
+  </div>
 </p-dialog>
 
 <p-confirmDialog></p-confirmDialog>

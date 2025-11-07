@@ -18,6 +18,7 @@ export interface HttpAuthPlaceholder {
 }
 
 interface BaseDocument {
+  id: UUID;
   meta: Meta;
 }
 
@@ -41,8 +42,10 @@ export interface RequestDoc extends BaseDocument {
   order: number;
   method: PastRequest["method"];
   url: string;
+  params?: Record<string, string>;
   headers: Record<string, string>;
   body?: unknown;
+  vars?: Record<string, string>;
   auth?: HttpAuthPlaceholder;
 }
 

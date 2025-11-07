@@ -53,6 +53,21 @@ export class SecretsService {
     return this.crypto.decryptWithSession(envelope);
   }
 
+  async verifyAndUnlock(passphrase: string): Promise<boolean> {
+    const sample = await this.idb.peekSecretEnvelope();
+    if (!sample) {
+      await this.crypto.unlock(passphrase);
+      return true;
+    }
+    try {
+      await this.crypto.decrypt(sample, passphrase);
+      await this.crypto.unlock(passphrase);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private randomId(): SecretId {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
       return crypto.randomUUID();

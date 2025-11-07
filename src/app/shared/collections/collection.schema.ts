@@ -12,6 +12,8 @@ const metaSchema = {
   },
 };
 
+const idProperty = { type: "string", minLength: 1 };
+
 const headersSchema = {
   type: "object",
   additionalProperties: { type: "string" },
@@ -33,9 +35,10 @@ const authSchema = {
 
 const collectionSchema = {
   type: "object",
-  required: ["meta", "name", "order"],
+  required: ["id", "meta", "name", "order"],
   additionalProperties: false,
   properties: {
+    id: idProperty,
     meta: metaSchema,
     name: { type: "string", minLength: 1 },
     description: { type: "string" },
@@ -45,9 +48,10 @@ const collectionSchema = {
 
 const folderSchema = {
   type: "object",
-  required: ["meta", "collectionId", "name", "order"],
+  required: ["id", "meta", "collectionId", "name", "order"],
   additionalProperties: false,
   properties: {
+    id: idProperty,
     meta: metaSchema,
     collectionId: { type: "string", minLength: 1 },
     parentFolderId: { type: "string", minLength: 1 },
@@ -58,17 +62,10 @@ const folderSchema = {
 
 const requestSchema = {
   type: "object",
-  required: [
-    "meta",
-    "collectionId",
-    "name",
-    "order",
-    "method",
-    "url",
-    "headers",
-  ],
+  required: ["id", "meta", "collectionId", "name", "order", "method", "url", "headers"],
   additionalProperties: false,
   properties: {
+    id: idProperty,
     meta: metaSchema,
     collectionId: { type: "string", minLength: 1 },
     folderId: { type: "string", minLength: 1 },
@@ -87,17 +84,26 @@ const requestSchema = {
       ] satisfies PastRequest["method"][],
     },
     url: { type: "string", minLength: 1 },
+    params: {
+      type: "object",
+      additionalProperties: { type: "string" },
+    },
     headers: headersSchema,
     body: { type: ["object", "string", "number", "boolean", "null"] },
+    vars: {
+      type: "object",
+      additionalProperties: { type: "string" },
+    },
     auth: authSchema,
   },
 };
 
 const environmentSchema = {
   type: "object",
-  required: ["meta", "name", "vars", "order"],
+  required: ["id", "meta", "name", "vars", "order"],
   additionalProperties: false,
   properties: {
+    id: idProperty,
     meta: metaSchema,
     name: { type: "string", minLength: 1 },
     description: { type: "string" },
@@ -109,7 +115,7 @@ const environmentSchema = {
   },
 };
 
-export const COLLECTION_EXPORT_SCHEMA = {
+export const CollectionExportSchema = {
   $id: "https://api-sandbox.dev/schemas/collection-export.json",
   type: "object",
   additionalProperties: false,
@@ -128,7 +134,7 @@ export const COLLECTION_EXPORT_SCHEMA = {
   },
 } as const;
 
-export const ENVIRONMENT_EXPORT_SCHEMA = {
+export const EnvironmentExportSchema = {
   $id: "https://api-sandbox.dev/schemas/environment-export.json",
   type: "object",
   additionalProperties: false,
@@ -141,3 +147,7 @@ export const ENVIRONMENT_EXPORT_SCHEMA = {
     },
   },
 } as const;
+
+// Backwards compatible aliases
+export const COLLECTION_EXPORT_SCHEMA = CollectionExportSchema;
+export const ENVIRONMENT_EXPORT_SCHEMA = EnvironmentExportSchema;

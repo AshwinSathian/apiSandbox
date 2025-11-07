@@ -1,4 +1,4 @@
-import { EnvironmentDoc } from "../../models/environments.models";
+import { EnvironmentDoc, EnvironmentId } from "../../models/environments.models";
 
 export type VariableSource = "request" | "environment" | "global" | "missing";
 export type VariableLocation = "url" | "header" | "body";
@@ -15,6 +15,7 @@ export interface VariableToken {
   source: VariableSource;
   location: VariableLocation;
   field: string;
+  environmentId?: EnvironmentId;
 }
 
 const PLACEHOLDER_PATTERN = /{{\s*([\w.\-]+)\s*}}/g;
@@ -22,14 +23,18 @@ const PLACEHOLDER_PATTERN = /{{\s*([\w.\-]+)\s*}}/g;
 export function resolveVariable(
   variable: string,
   context: VariableContext
-): { value?: string; source: VariableSource } {
+): { value?: string; source: VariableSource; environmentId?: EnvironmentId } {
   const requestValue = context.requestVars?.[variable];
   if (requestValue !== undefined) {
     return { value: requestValue, source: "request" };
   }
   const envValue = context.environment?.vars?.[variable];
   if (envValue !== undefined) {
-    return { value: envValue, source: "environment" };
+    return {
+      value: envValue,
+      source: "environment",
+      environmentId: context.environment?.meta.id,
+    };
   }
   const globalValue = context.globals?.[variable];
   if (globalValue !== undefined) {
@@ -63,6 +68,7 @@ export function extractVariables(
       source: resolved.source,
       location,
       field,
+      environmentId: resolved.environmentId,
     });
   }
   return matches;

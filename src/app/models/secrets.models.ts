@@ -9,6 +9,7 @@ export interface SecretEnvelope {
 }
 
 export interface SecretDoc {
+  id: UUID;
   meta: Meta;
   name: string;
   environmentId?: UUID;

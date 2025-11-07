@@ -48,6 +48,20 @@ A focused, fast, and friendly web app for trying APIs without the overhead of a 
 
 ---
 
+## Phase Progress
+
+- **Phase 0 (Foundations)**
+  - Monaco JSON editor with lazy workers to keep the initial bundle tiny.
+  - Response inspector (HAR/NDJSON exports, waterfall timings, size metrics) wired into the fetch pipeline.
+  - Workerised JSON formatting/search so large payloads never block the UI thread.
+- **Phase 1 (Local collections & secrets)**
+  - Collections/folders/requests CRUD with drag/drop reorder, inline rename, and deterministic import/export.
+  - Environment manager + dropdown switcher, variable resolution chips, and per‑variable focus from the request editor.
+  - Encrypted secrets at rest via PBKDF2 + AES‑GCM, lock/unlock UI, and ciphertext‑only IndexedDB rows.
+  - “Reset All Data” action to nuke IndexedDB + local settings in one guarded click.
+
+---
+
 ## Quick Start (Local)
 
 > Requires **Node 18+** and a modern browser. Angular CLI is optional; the scripts below will run the dev server.
@@ -93,6 +107,7 @@ npm run build
 - Your request history is stored **locally** in your browser via **IndexedDB (IDB)**.
 - **Nothing is uploaded** to our servers.
 - You’re in control: clear individual entries or wipe the entire history anytime.
+- Need a clean slate? Hit **Reset All** in the toolbar — it closes the IDB connection, deletes the `api-sandbox` database, clears app-specific storage, and reloads the app.
 
 ---
 
@@ -115,6 +130,12 @@ Possibly. The app is dark‑first today.
 ## Contributing
 
 Contributions are welcome—bug reports, small UX wins, docs tweaks, or focused features that keep the app fast and simple. Please open an issue to propose changes before a PR, and keep scope tight.
+
+## Docs
+
+- [Collections schema](docs/collections-schema.md)
+- [Secrets model](docs/secrets.md)
+- [Storage layout](docs/storage.md)
 
 ---
 

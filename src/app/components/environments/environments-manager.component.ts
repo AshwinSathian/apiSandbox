@@ -21,6 +21,12 @@ import { EnvironmentsService } from "../../services/environments.service";
 import { SecretsService } from "../../services/secrets.service";
 import { SecretCryptoService } from "../../shared/secrets/secret-crypto.service";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
+import { VariableFocusService } from "../../services/variable-focus.service";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import {
+  serializeEnvironmentExport,
+  validateEnvironmentExport,
+} from "../../shared/environments/environment-io.util";
 
 interface EnvironmentDraft {
   id: EnvironmentId;
@@ -29,6 +35,12 @@ interface EnvironmentDraft {
   vars: Array<{ key: string; value: string }>;
   jsonText: string;
   jsonValid: boolean;
+}
+
+interface EnvironmentImportEntry {
+  doc: EnvironmentDoc;
+  action: "merge" | "replace";
+  targetId?: EnvironmentId | null;
 }
 
 @Component({
@@ -60,18 +72,21 @@ export class EnvironmentsManagerComponent implements OnInit {
   private readonly secretPreview: Record<string, string> = {};
   envImportDialogVisible = false;
   envImportErrors: string[] = [];
-  pendingEnvImport: EnvironmentDoc[] | null = null;
+  pendingEnvImport: EnvironmentImportEntry[] = [];
   envImportFileName = "";
   newEnvDialogVisible = false;
   newEnvForm = {
     name: "",
     description: "",
   };
+  focusedVariableKey: string | null = null;
+  private focusTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly envService: EnvironmentsService,
     private readonly secretsService: SecretsService,
-    private readonly secretCrypto: SecretCryptoService
+    private readonly secretCrypto: SecretCryptoService,
+    private readonly variableFocus: VariableFocusService
   ) {
     effect(() => {
       const env = this.activeEnvironment();
@@ -79,6 +94,18 @@ export class EnvironmentsManagerComponent implements OnInit {
         this.selectEnvironment(env.meta.id);
       }
     });
+
+    this.variableFocus.focus$
+      .pipe(takeUntilDestroyed())
+      .subscribe((token) => {
+        if (token.source === "environment") {
+          if (token.environmentId && token.environmentId !== this.selectedId()) {
+            this.selectEnvironment(token.environmentId);
+          }
+          this.editorTab.set("pairs");
+          this.highlightVariable(token.key);
+        }
+      });
   }
 
   async ngOnInit(): Promise<void> {
@@ -91,6 +118,7 @@ export class EnvironmentsManagerComponent implements OnInit {
     if (env) {
       this.draft.set(this.toDraft(env));
     }
+    this.focusedVariableKey = null;
   }
 
   openNewEnvironmentDialog(): void {
@@ -116,11 +144,7 @@ export class EnvironmentsManagerComponent implements OnInit {
   }
 
   exportEnvironments(): void {
-    const payload = {
-      meta: { version: 1, exportedAt: Date.now() },
-      environments: this.environments(),
-    };
-    const json = JSON.stringify(payload, null, 2);
+    const json = serializeEnvironmentExport(this.environments());
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
@@ -137,25 +161,38 @@ export class EnvironmentsManagerComponent implements OnInit {
       return;
     }
     const text = await file.text();
-    const parsed = this.parseEnvironmentExport(text);
+    const parsed = validateEnvironmentExport(text);
     this.envImportErrors = parsed.errors ?? [];
-    this.pendingEnvImport = parsed.environments ?? null;
+    this.pendingEnvImport = parsed.payload
+      ? this.buildEnvImportEntries(parsed.payload)
+      : [];
     this.envImportFileName = file.name;
     this.envImportDialogVisible = true;
     input.value = "";
   }
 
   async confirmEnvironmentImport(): Promise<void> {
-    if (!this.pendingEnvImport || this.envImportErrors.length) {
+    if (!this.pendingEnvImport.length || this.envImportErrors.length) {
       this.closeEnvImportDialog();
       return;
     }
-    for (const env of this.pendingEnvImport) {
-      await this.envService.createEnvironment({
-        name: `${env.name} (Imported)`,
-        description: env.description,
-        vars: env.vars,
-      });
+    const usedNames = new Set(this.environments().map((env) => env.name));
+    for (const entry of this.pendingEnvImport) {
+      if (entry.action === "replace" && entry.targetId) {
+        await this.envService.updateEnvironment(entry.targetId, {
+          name: entry.doc.name,
+          description: entry.doc.description,
+          vars: entry.doc.vars,
+        });
+        usedNames.add(entry.doc.name);
+      } else {
+        const name = this.ensureUniqueEnvironmentName(entry.doc.name, usedNames);
+        await this.envService.createEnvironment({
+          name,
+          description: entry.doc.description,
+          vars: entry.doc.vars,
+        });
+      }
     }
     this.closeEnvImportDialog();
   }
@@ -163,7 +200,7 @@ export class EnvironmentsManagerComponent implements OnInit {
   closeEnvImportDialog(): void {
     this.envImportDialogVisible = false;
     this.envImportErrors = [];
-    this.pendingEnvImport = null;
+    this.pendingEnvImport = [];
     this.envImportFileName = "";
   }
 
@@ -268,19 +305,16 @@ export class EnvironmentsManagerComponent implements OnInit {
     return this.secretCrypto.isUnlocked;
   }
 
-  private parseEnvironmentExport(text: string): {
-    environments?: EnvironmentDoc[];
-    errors?: string[];
-  } {
-    try {
-      const payload = JSON.parse(text);
-      if (!Array.isArray(payload?.environments)) {
-        return { errors: ["File does not contain environments array."] };
-      }
-      return { environments: payload.environments };
-    } catch {
-      return { errors: ["Invalid JSON file."] };
+  setEnvImportAction(index: number, action: "merge" | "replace"): void {
+    const current = this.pendingEnvImport[index];
+    if (!current) {
+      return;
     }
+    if (action === "replace" && !current.targetId) {
+      return;
+    }
+    this.pendingEnvImport[index] = { ...current, action };
+    this.pendingEnvImport = [...this.pendingEnvImport];
   }
 
   private extractSecretId(value: string): string | null {
@@ -363,5 +397,43 @@ export class EnvironmentsManagerComponent implements OnInit {
       jsonText: JSON.stringify(env.vars ?? {}, null, 2),
       jsonValid: true,
     };
+  }
+
+  private buildEnvImportEntries(payload: EnvironmentDoc[]): EnvironmentImportEntry[] {
+    const existing = this.environments();
+    return payload.map((doc) => {
+      const target = existing.find((env) => env.name === doc.name);
+      return {
+        doc,
+        action: target ? "replace" : "merge",
+        targetId: target?.id ?? target?.meta.id ?? null,
+      };
+    });
+  }
+
+  private ensureUniqueEnvironmentName(name: string, used: Set<string>): string {
+    if (!used.has(name)) {
+      used.add(name);
+      return name;
+    }
+    let counter = 2;
+    let candidate = `${name} (${counter})`;
+    while (used.has(candidate)) {
+      counter += 1;
+      candidate = `${name} (${counter})`;
+    }
+    used.add(candidate);
+    return candidate;
+  }
+
+  private highlightVariable(key: string): void {
+    this.focusedVariableKey = key;
+    if (this.focusTimeoutHandle) {
+      clearTimeout(this.focusTimeoutHandle);
+    }
+    this.focusTimeoutHandle = setTimeout(() => {
+      this.focusedVariableKey = null;
+      this.focusTimeoutHandle = null;
+    }, 2500);
   }
 }

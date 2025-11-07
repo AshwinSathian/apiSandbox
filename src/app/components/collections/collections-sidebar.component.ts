@@ -1,6 +1,7 @@
 import { CommonModule } from "@angular/common";
 import {
   Component,
+  HostListener,
   OnInit,
   computed,
   signal,
@@ -16,6 +17,7 @@ import {
 import { ButtonModule } from "primeng/button";
 import { ContextMenuModule } from "primeng/contextmenu";
 import { InputTextModule } from "primeng/inputtext";
+import { CheckboxModule } from "primeng/checkbox";
 import { SkeletonModule } from "primeng/skeleton";
 import { TreeModule } from "primeng/tree";
 import { DialogModule } from "primeng/dialog";
@@ -32,22 +34,29 @@ import {
   CollectionsService,
 } from "../../services/collections.service";
 import {
-  serializeDeterministic,
-  parseCollectionImport,
+  CollectionImportResult,
+  importCollection as planCollectionImport,
+  validateCollection,
   ValidationResult,
 } from "../../shared/collections/collection-io.util";
 import { PastRequest } from "../../models/history.models";
 
 type NodeType = "collection" | "folder" | "request";
 
-interface NodeData {
-  type: NodeType;
-  ref: Collection | Folder | RequestDoc;
-}
+type NodeData =
+  | { type: "collection"; ref: Collection }
+  | { type: "folder"; ref: Folder }
+  | { type: "request"; ref: RequestDoc };
 
 interface TreeDragDropEvent {
   dragNode?: TreeNode<NodeData>;
   tree?: { value?: TreeNode<NodeData>[] };
+}
+
+interface PaletteAction {
+  id: string;
+  label: string;
+  run: () => void | Promise<void>;
 }
 
 @Component({
@@ -60,6 +69,7 @@ interface TreeDragDropEvent {
     ContextMenuModule,
     ButtonModule,
     InputTextModule,
+    CheckboxModule,
     SkeletonModule,
     DialogModule,
     SelectModule,
@@ -80,8 +90,12 @@ export class CollectionsSidebarComponent implements OnInit {
   editingValue = "";
   importDialogVisible = false;
   importErrors: ValidationResult[] = [];
-  pendingImport: CollectionExport | null = null;
+  importAnalysis: CollectionImportResult | null = null;
+  importSourcePayload: CollectionExport | null = null;
+  importDuplicateAsNew = false;
   importFileName = "";
+  commandPaletteVisible = false;
+  commandPaletteQuery = "";
   creationDialogVisible = false;
   creationContext:
     | {
@@ -124,13 +138,17 @@ export class CollectionsSidebarComponent implements OnInit {
       return;
     }
     const text = await file.text();
-    const result = parseCollectionImport(text);
-    if (result.errors?.length) {
-      this.importErrors = result.errors;
-      this.pendingImport = null;
+    const validation = validateCollection(text);
+    if (!validation.ok || !validation.payload) {
+      this.importErrors = validation.errors ?? [
+        { path: "root", message: "Invalid collection export." },
+      ];
+      this.importSourcePayload = null;
+      this.importAnalysis = null;
     } else {
-      this.pendingImport = result.payload ?? null;
       this.importErrors = [];
+      this.importSourcePayload = validation.payload;
+      this.updateImportAnalysis();
     }
     this.importFileName = file.name;
     this.importDialogVisible = true;
@@ -138,48 +156,195 @@ export class CollectionsSidebarComponent implements OnInit {
   }
 
   async confirmImport(): Promise<void> {
-    if (!this.pendingImport) {
+    if (!this.importAnalysis?.payload || this.importErrors.length) {
       this.importDialogVisible = false;
       return;
     }
-    const payload = this.pendingImport;
-    const target = await this.collectionsService.createCollection({
-      name: `${payload.collection.name} (Imported)`,
-      description: payload.collection.description,
+    await this.collectionsService.importCollection(this.importAnalysis.payload, {
+      duplicateAsNew: this.importDuplicateAsNew,
     });
-    const folderIdMap = new Map<string, string>();
-    const folders = this.sortByOrder(payload.folders);
-    for (const folder of folders) {
-      const created = await this.collectionsService.createFolder({
-        collectionId: target.meta.id,
-        name: folder.name,
-        parentFolderId: folder.parentFolderId
-          ? folderIdMap.get(folder.parentFolderId)
-          : undefined,
-      });
-      folderIdMap.set(folder.meta.id, created.meta.id);
-    }
-
-    const requests = this.sortByOrder(payload.requests);
-    for (const request of requests) {
-      await this.collectionsService.createRequest({
-        collectionId: target.meta.id,
-        folderId: request.folderId ? folderIdMap.get(request.folderId) : undefined,
-        name: request.name,
-        method: request.method,
-        url: request.url,
-        headers: request.headers,
-        body: request.body,
-      });
-    }
     this.closeImportDialog();
+  }
+
+  toggleDuplicateImport(value: boolean): void {
+    this.importDuplicateAsNew = value;
+    this.updateImportAnalysis();
   }
 
   closeImportDialog(): void {
     this.importDialogVisible = false;
     this.importErrors = [];
-    this.pendingImport = null;
+    this.importSourcePayload = null;
+    this.importAnalysis = null;
+    this.importDuplicateAsNew = false;
     this.importFileName = "";
+  }
+
+  private updateImportAnalysis(): void {
+    if (!this.importSourcePayload) {
+      this.importAnalysis = null;
+      return;
+    }
+    const analysis = planCollectionImport(this.importSourcePayload, {
+      duplicateAsNew: this.importDuplicateAsNew,
+    });
+    this.importAnalysis = analysis;
+    this.importErrors = analysis.errors ?? [];
+  }
+
+  @HostListener("window:keydown", ["$event"])
+  handleGlobalKeydown(event: KeyboardEvent): void {
+    if (this.importDialogVisible || this.commandPaletteVisible) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    if (target && ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      event.preventDefault();
+      this.openCommandPalette();
+      return;
+    }
+
+    if (event.key === "Delete" && this.selectedNode()) {
+      event.preventDefault();
+      this.handleAction("delete", this.selectedNode()!);
+      return;
+    }
+
+    if (!event.metaKey && !event.ctrlKey && !event.altKey) {
+      if (event.key.toLowerCase() === "c") {
+        event.preventDefault();
+        void this.handleCreateCollection();
+        return;
+      }
+      if (event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        this.triggerNewRequestShortcut();
+      }
+    }
+  }
+
+  openCommandPalette(): void {
+    this.commandPaletteQuery = "";
+    this.commandPaletteVisible = true;
+  }
+
+  closeCommandPalette(): void {
+    this.commandPaletteVisible = false;
+    this.commandPaletteQuery = "";
+  }
+
+  get filteredPaletteActions(): PaletteAction[] {
+    const actions = this.buildPaletteActions();
+    const needle = this.commandPaletteQuery.trim().toLowerCase();
+    if (!needle) {
+      return actions;
+    }
+    return actions.filter((action) => action.label.toLowerCase().includes(needle));
+  }
+
+  executeFirstPaletteAction(): void {
+    const action = this.filteredPaletteActions[0];
+    if (action) {
+      this.executePaletteAction(action);
+    }
+  }
+
+  async executePaletteAction(action: PaletteAction): Promise<void> {
+    await Promise.resolve(action.run());
+    this.closeCommandPalette();
+  }
+
+  private buildPaletteActions(): PaletteAction[] {
+    const actions: PaletteAction[] = [
+      { id: "new-collection", label: "New Collection", run: () => this.handleCreateCollection() },
+    ];
+    const node = this.selectedNode();
+    if (!node) {
+      return actions;
+    }
+    const data = node.data as NodeData;
+    if (data.type === "collection") {
+      actions.push(
+        {
+          id: "new-folder",
+          label: `New Folder in ${data.ref.name}`,
+          run: () => this.createFolderPrompt(data.ref.meta.id),
+        },
+        {
+          id: "new-request",
+          label: `New Request in ${data.ref.name}`,
+          run: () => this.createRequestPrompt(data.ref.meta.id),
+        },
+        {
+          id: "duplicate-collection",
+          label: `Duplicate ${data.ref.name}`,
+          run: () => this.duplicateNode({ type: "collection", ref: data.ref }),
+        },
+        {
+          id: "export-collection",
+          label: `Export ${data.ref.name}`,
+          run: () => this.exportCollection(node),
+        },
+        {
+          id: "delete-collection",
+          label: `Delete ${data.ref.name}`,
+          run: () => this.handleAction("delete", node),
+        }
+      );
+    }
+    if (data.type === "folder") {
+      const folder = data.ref;
+      actions.push(
+        {
+          id: "new-request-folder",
+          label: `New Request in ${folder.name}`,
+          run: () => this.createRequestPrompt(folder.collectionId, folder.meta.id),
+        },
+        {
+          id: "duplicate-folder",
+          label: `Duplicate ${folder.name}`,
+          run: () => this.duplicateNode(data),
+        },
+        {
+          id: "delete-folder",
+          label: `Delete ${folder.name}`,
+          run: () => this.handleAction("delete", node),
+        }
+      );
+    }
+    if (data.type === "request") {
+      const request = data.ref;
+      actions.push(
+        {
+          id: "duplicate-request",
+          label: `Duplicate ${request.name || request.url}`,
+          run: () => this.duplicateNode(data),
+        },
+        {
+          id: "delete-request",
+          label: `Delete ${request.name || request.url}`,
+          run: () => this.handleAction("delete", node),
+        }
+      );
+    }
+    return actions;
+  }
+
+  private triggerNewRequestShortcut(): void {
+    const node = this.selectedNode();
+    if (!node) {
+      return;
+    }
+    const data = node.data as NodeData;
+    if (data.type === "collection") {
+      void this.createRequestPrompt(data.ref.meta.id);
+    } else if (data.type === "folder") {
+      void this.createRequestPrompt(data.ref.collectionId, data.ref.meta.id);
+    }
   }
 
   handleNodeSelect(node: TreeNode<NodeData>): void {
@@ -441,38 +606,23 @@ export class CollectionsSidebarComponent implements OnInit {
     };
   }
 
-  private exportCollection(node: TreeNode<NodeData>): void {
+  private async exportCollection(node: TreeNode<NodeData>): Promise<void> {
     const data = node.data as NodeData;
     if (data.type !== "collection") {
       return;
     }
-    const tree = this.collectionsService.getCollectionTree(data.ref.meta.id);
-    if (!tree) {
+    const json = await this.collectionsService.exportCollectionJson(data.ref.meta.id);
+    if (!json) {
       return;
     }
-    const json = serializeDeterministic(tree);
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${tree.collection.name.replace(/\s+/g, "-").toLowerCase()}-collection.json`;
+    const safeName = data.ref.name.replace(/\s+/g, "-").toLowerCase();
+    anchor.download = `${safeName}-collection.json`;
     anchor.click();
     URL.revokeObjectURL(url);
-  }
-
-  private sortByOrder<T extends { order?: number; meta?: { id: string } }>(
-    items: T[]
-  ): T[] {
-    return [...items].sort((a, b) => {
-      const orderA = typeof a.order === "number" ? a.order : 0;
-      const orderB = typeof b.order === "number" ? b.order : 0;
-      if (orderA !== orderB) {
-        return orderA - orderB;
-      }
-      const idA = a.meta?.id ?? "";
-      const idB = b.meta?.id ?? "";
-      return idA.localeCompare(idB);
-    });
   }
 
   private isCollection(ref: Collection | Folder | RequestDoc): ref is Collection {

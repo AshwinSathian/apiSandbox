@@ -29,17 +29,28 @@
     <div class="flex flex-wrap gap-2 rounded-lg bg-slate-900/40 px-4 py-3 text-xs uppercase tracking-wide text-slate-300">
       @for (token of variableTokens; track token.field + token.key) {
       <p-chip
-        [label]="token.key"
         [styleClass]="getVariableChipClass(token) + ' px-2 py-1 text-[11px] cursor-pointer'"
-        (click)="toggleVariableHighlight(token.source)"
+        (click)="handleVariableChipClick(token)"
       >
         <ng-template pTemplate="content">
-          <span class="font-semibold">{{ token.key }}</span>
-          <span class="ml-2 text-[10px] capitalize">{{ token.source }}</span>
+          <div class="flex flex-col text-left">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold">{{ token.key }}</span>
+              <span class="text-[10px] capitalize">{{ token.source }}</span>
+            </div>
+            <div class="text-[10px] normal-case text-slate-200">
+              {{ token.value ?? "Not resolved" }}
+            </div>
+          </div>
         </ng-template>
       </p-chip>
       }
     </div>
+    @if (missingVariableKeys.length) {
+    <p class="mt-2 text-xs uppercase tracking-wide text-amber-300">
+      Missing variables: {{ missingVariableKeys.join(", ") }}
+    </p>
+    }
     }
 
     <section class="rounded-lg bg-slate-900/40 p-6">

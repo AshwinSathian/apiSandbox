@@ -42,6 +42,68 @@
       <p-tabpanels>
         <p-tabpanel value="body">
           <div class="space-y-4 text-sm text-slate-200">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div class="flex flex-wrap items-center gap-2">
+                <button
+                  pButton
+                  type="button"
+                  label="Beautify"
+                  icon="pi pi-pencil"
+                  size="small"
+                  [disabled]="!responseBodyIsJson"
+                  (click)="beautifyResponse()"
+                ></button>
+                <button
+                  pButton
+                  type="button"
+                  label="Minify"
+                  icon="pi pi-compress"
+                  size="small"
+                  [disabled]="!responseBodyIsJson"
+                  (click)="minifyResponse()"
+                ></button>
+              </div>
+              @if (responseBodyIsJson) {
+              <div class="flex flex-wrap items-center gap-2 text-xs uppercase text-slate-400">
+                <span>Search</span>
+                <input
+                  pInputText
+                  class="w-40"
+                  [value]="searchQuery"
+                  (input)="onSearchQueryChange($any($event.target).value)"
+                  placeholder="Search JSON"
+                />
+                <span class="text-[11px] text-slate-300">
+                  {{ searchResult?.count ? searchActiveIndex + 1 : 0 }}/{{ searchResult?.count || 0 }}
+                </span>
+                <div class="flex items-center gap-1">
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-angle-up"
+                    size="small"
+                    text
+                    [disabled]="!searchResult?.count"
+                    (click)="stepSearch(-1)"
+                  ></button>
+                  <button
+                    pButton
+                    type="button"
+                    icon="pi pi-angle-down"
+                    size="small"
+                    text
+                    [disabled]="!searchResult?.count"
+                    (click)="stepSearch(1)"
+                  ></button>
+                </div>
+              </div>
+              }
+            </div>
+            @if (currentSearchExcerpt) {
+            <div class="rounded-lg border border-slate-800/70 bg-slate-900/30 p-2 text-[11px] text-slate-300">
+              …{{ currentSearchExcerpt }}…
+            </div>
+            }
             @if (!isError) { @if (responseBodyIsJson) {
             <app-json-editor
               name="responseJson"

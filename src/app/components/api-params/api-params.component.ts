@@ -42,6 +42,7 @@ import {
   VariableToken,
   collectVariableTokens,
 } from "../../shared/environments/env-resolution.util";
+import { VariableFocusService } from "../../services/variable-focus.service";
 
 type EditorMode = "basic" | "json";
 type ContextType = "Body" | "Headers";
@@ -122,6 +123,7 @@ export class ApiParamsComponent implements OnInit, DoCheck {
   mobileActivePanels: string[];
   requestVariables: Record<string, string>;
   variableTokens: VariableToken[];
+  missingVariableKeys: string[];
   highlightedVariableSource: VariableToken["source"] | null = null;
   private previewFingerprint = "";
 
@@ -129,7 +131,8 @@ export class ApiParamsComponent implements OnInit, DoCheck {
     private _mainService: MainService,
     private _idbService: IdbService,
     private _responseInspector: ResponseInspectorService,
-    private readonly environmentsService: EnvironmentsService
+    private readonly environmentsService: EnvironmentsService,
+    private readonly variableFocus: VariableFocusService
   ) {
     this.endpoint = "";
     this.selectedRequestMethod = "GET";
@@ -182,6 +185,7 @@ export class ApiParamsComponent implements OnInit, DoCheck {
     this.responseExportContext = null;
     this.requestVariables = {};
     this.variableTokens = [];
+    this.missingVariableKeys = [];
     this.addItemFn = (ctx: ContextType) => this.addItem(ctx);
     this.removeItemFn = (index: number, ctx: ContextType) =>
       this.removeItem(index, ctx);
@@ -350,24 +354,25 @@ export class ApiParamsComponent implements OnInit, DoCheck {
   }
 
   getVariableChipClass(token: VariableToken): string {
-    const base =
-      token.source === "request"
-        ? "bg-sky-900/40 text-sky-100 border border-sky-700/40"
-        : token.source === "environment"
-          ? "bg-emerald-900/30 text-emerald-100 border border-emerald-700/40"
-          : token.source === "global"
-            ? "bg-indigo-900/30 text-indigo-100 border border-indigo-700/40"
-            : "bg-amber-900/30 text-amber-100 border border-amber-600/40";
+    const palette: Record<VariableToken["source"], string> = {
+      request: "bg-sky-900/40 text-sky-100 border border-sky-700/40",
+      environment: "bg-emerald-900/30 text-emerald-100 border border-emerald-700/40",
+      global: "bg-indigo-900/30 text-indigo-100 border border-indigo-700/40",
+      missing: "bg-amber-900/30 text-amber-100 border border-amber-600/40",
+    };
     const highlight =
       this.highlightedVariableSource && this.highlightedVariableSource === token.source
         ? " ring-2 ring-offset-2 ring-white/60"
         : "";
-    return base + highlight;
+    return palette[token.source] + highlight;
   }
 
-  toggleVariableHighlight(source: VariableToken["source"]): void {
+  handleVariableChipClick(token: VariableToken): void {
     this.highlightedVariableSource =
-      this.highlightedVariableSource === source ? null : source;
+      this.highlightedVariableSource === token.source ? null : token.source;
+    if (token.source === "environment") {
+      this.variableFocus.requestFocus(token);
+    }
   }
 
   private resetResponseState(): void {
@@ -583,6 +588,9 @@ export class ApiParamsComponent implements OnInit, DoCheck {
         globals: {},
       }
     );
+    this.missingVariableKeys = this.variableTokens
+      .filter((token) => token.source === "missing")
+      .map((token) => token.key);
   }
 
   private extractError(error: HttpErrorResponse): string {
