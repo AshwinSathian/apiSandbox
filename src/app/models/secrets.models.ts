@@ -1,0 +1,18 @@
+import { Meta, UUID } from "./collections.models";
+
+export interface SecretEnvelope {
+  v: 1;
+  alg: "AES-GCM";
+  salt: string;
+  iv: string;
+  ct: string;
+}
+
+export interface SecretDoc {
+  meta: Meta;
+  name: string;
+  environmentId?: UUID;
+  envelope: SecretEnvelope;
+}
+
+export type SecretId = UUID;

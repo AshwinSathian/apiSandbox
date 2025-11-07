@@ -1,0 +1,35 @@
+:host {
+  display: block;
+}
+
+.env-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  background-color: rgba(15, 23, 42, 0.4);
+  border: 1px solid transparent;
+  color: #cbd5f5;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.env-item:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.env-item.active {
+  border-color: rgba(59, 130, 246, 0.8);
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.form-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}

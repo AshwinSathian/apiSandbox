@@ -25,6 +25,22 @@
         }
       </div>
     </div>
+    @if (variableTokens.length) {
+    <div class="flex flex-wrap gap-2 rounded-lg bg-slate-900/40 px-4 py-3 text-xs uppercase tracking-wide text-slate-300">
+      @for (token of variableTokens; track token.field + token.key) {
+      <p-chip
+        [label]="token.key"
+        [styleClass]="getVariableChipClass(token) + ' px-2 py-1 text-[11px] cursor-pointer'"
+        (click)="toggleVariableHighlight(token.source)"
+      >
+        <ng-template pTemplate="content">
+          <span class="font-semibold">{{ token.key }}</span>
+          <span class="ml-2 text-[10px] capitalize">{{ token.source }}</span>
+        </ng-template>
+      </p-chip>
+      }
+    </div>
+    }
 
     <section class="rounded-lg bg-slate-900/40 p-6">
       <div class="hidden md:block">

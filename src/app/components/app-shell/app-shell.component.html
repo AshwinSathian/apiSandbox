@@ -50,18 +50,24 @@
       </div>
       }
 
-      <div class="px-4 text-md text-slate-250 flex items-center gap-2">
-        <span class="material-icons text-base">history</span>
-        <span class="uppercase tracking-wide">History</span>
+      <div class="flex-1 overflow-y-auto px-3 py-2">
+        <app-collections-sidebar class="h-full w-full"></app-collections-sidebar>
       </div>
-      <div class="flex-1 overflow-y-auto p-1">
-        <app-past-requests
-          [pastRequests]="pastRequests"
-          [loading]="historyLoading"
-          [displayHeader]="false"
-          (loadRequest)="handleLoadRequest($event)"
-          (deleteRequest)="deleteRequest.emit($event)"
-        ></app-past-requests>
+
+      <div class="border-t border-slate-800/70 px-4 py-3">
+        <div class="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-slate-400">
+          <span class="material-icons text-base">history</span>
+          <span>Recent History</span>
+        </div>
+        <div class="max-h-60 overflow-y-auto rounded-lg border border-slate-800/70 p-1">
+          <app-past-requests
+            [pastRequests]="pastRequests"
+            [loading]="historyLoading"
+            [displayHeader]="false"
+            (loadRequest)="handleLoadRequest($event)"
+            (deleteRequest)="deleteRequest.emit($event)"
+          ></app-past-requests>
+        </div>
       </div>
 
       <div class="border-t border-slate-800/70 p-4">
@@ -82,7 +88,7 @@
     class="flex flex-1 flex-col transition-all duration-300"
     [ngClass]="{ 'md:ml-[22rem]': !isMobile && drawerVisible }"
   >
-    <div class="p-4 w-full">
+    <div class="flex flex-wrap items-center justify-between gap-3 p-4">
       <button
         pButton
         type="button"
@@ -94,6 +100,26 @@
       >
         <span class="material-icons text-2xl">side_navigation</span>
       </button>
+      <div class="flex flex-wrap items-center gap-3">
+        <p-select
+          [options]="dropdownOptions"
+          [(ngModel)]="selectedEnvironmentId"
+          placeholder="Select environment"
+          optionLabel="label"
+          optionValue="value"
+          (onChange)="handleEnvironmentChange($event.value)"
+          styleClass="env-switcher"
+        ></p-select>
+        <button
+          pButton
+          type="button"
+          [icon]="secretsUnlocked ? 'pi pi-unlock' : 'pi pi-lock'"
+          [severity]="secretsUnlocked ? 'success' : 'secondary'"
+          (click)="secretsUnlocked ? lockSecrets() : openLockDialog()"
+          pTooltip="{{ secretsUnlocked ? 'Lock secrets' : 'Unlock secrets' }}"
+          tooltipPosition="bottom"
+        ></button>
+      </div>
     </div>
 
     <main class="flex-1 overflow-y-auto">
@@ -109,11 +135,42 @@
             </span>
           </div>
           <app-api-params (newRequest)="newRequest.emit()"></app-api-params>
+          <app-environments-manager></app-environments-manager>
         </div>
       </div>
     </main>
   </div>
 </div>
+
+<p-dialog
+  header="Unlock Secrets"
+  [(visible)]="lockDialogVisible"
+  [modal]="true"
+  [dismissableMask]="true"
+  [style]="{ width: '360px' }"
+>
+  <div class="flex flex-col gap-4">
+    <p class="text-sm text-slate-300">
+      Enter your passphrase to unlock encrypted secrets for this session.
+    </p>
+    <input
+      pInputText
+      type="password"
+      class="w-full"
+      [(ngModel)]="unlockPassphrase"
+      placeholder="Passphrase"
+    />
+    <div class="flex justify-end gap-2">
+      <button pButton label="Cancel" severity="secondary" (click)="closeLockDialog()"></button>
+      <button
+        pButton
+        label="Unlock"
+        [disabled]="!unlockPassphrase"
+        (click)="unlockSecrets()"
+      ></button>
+    </div>
+  </div>
+</p-dialog>
 
 <p-confirmdialog #cd>
   <ng-template

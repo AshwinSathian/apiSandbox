@@ -1,0 +1,23 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.collections-sidebar :deep(.p-tree) {
+  background: transparent;
+  border: none;
+  color: #cbd5f5;
+}
+
+.collections-sidebar :deep(.p-tree-node-content) {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.collections-sidebar :deep(.p-tree-node-content:hover) {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.collections-sidebar :deep(.p-tree-node-selected) {
+  background-color: rgba(59, 130, 246, 0.2);
+}

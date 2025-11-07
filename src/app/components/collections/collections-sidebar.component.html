@@ -1,0 +1,172 @@
+<div class="collections-sidebar flex h-full flex-col gap-4">
+  <div class="flex items-center justify-between gap-3">
+    <div>
+      <p class="text-xs uppercase tracking-widest text-slate-400">
+        Collections
+      </p>
+      <p class="text-base font-semibold text-white">Organize requests</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        pButton
+        icon="pi pi-upload"
+        size="small"
+        text
+        severity="secondary"
+        (click)="fileInput.click()"
+      ></button>
+      <button
+        pButton
+        icon="pi pi-plus"
+        size="small"
+        severity="secondary"
+        (click)="handleCreateCollection()"
+      ></button>
+    </div>
+  </div>
+  <input
+    #fileInput
+    type="file"
+    accept="application/json"
+    class="hidden"
+    (change)="handleImportFile($event)"
+  />
+
+  @if (loading()) {
+  <p-skeleton width="100%" height="200px"></p-skeleton>
+  } @else if (!nodes().length) {
+  <div class="rounded-lg border border-dashed border-slate-700 p-4 text-sm text-slate-400">
+    No collections yet. Create one to start grouping your requests.
+  </div>
+  } @else {
+  <p-tree
+    [value]="nodes()"
+    selectionMode="single"
+    [draggableNodes]="true"
+    [droppableNodes]="true"
+    (onNodeSelect)="handleNodeSelect($event.node)"
+    (onNodeDragEnd)="handleNodeSelect($event.node)"
+    (onNodeDrop)="handleDrop($event)"
+    (onNodeContextMenuSelect)="handleNodeSelect($event.node)"
+    [contextMenu]="contextMenu"
+  >
+    <ng-template let-node pTemplate="default">
+      <div class="flex w-full items-center gap-2">
+        @if (editingKey() === node.key) {
+        <input
+          pInputText
+          class="w-full bg-transparent text-sm"
+          [(ngModel)]="editingValue"
+          (keydown.enter)="commitRename(node)"
+          (keydown.escape)="cancelEdit()"
+          (blur)="commitRename(node)"
+          autofocus
+        />
+        } @else {
+        <span class="text-sm text-white">{{ node.label }}</span>
+        }
+      </div>
+    </ng-template>
+  </p-tree>
+  }
+
+  <p-contextMenu #contextMenu [model]="contextItems()"></p-contextMenu>
+</div>
+
+<p-dialog
+  header="Import Collection"
+  [(visible)]="importDialogVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  (onHide)="closeImportDialog()"
+>
+  @if (importErrors.length) {
+  <div class="space-y-2 text-sm text-red-300">
+    <p class="font-semibold">Unable to import file "{{ importFileName }}":</p>
+    <ul class="list-disc pl-5">
+      @for (error of importErrors; track error.path + error.message) {
+      <li>{{ error.path }} — {{ error.message }}</li>
+      }
+    </ul>
+  </div>
+  } @else if (pendingImport) {
+  <div class="space-y-1 text-sm text-slate-300">
+    <p class="font-semibold text-white">{{ pendingImport.collection.name }}</p>
+    <p>{{ pendingImport.requests.length }} requests</p>
+    <p>{{ pendingImport.folders.length }} folders</p>
+  </div>
+  } @else {
+  <p class="text-sm text-slate-300">
+    Select a valid collection export file to proceed.
+  </p>
+  }
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-2">
+      <button pButton label="Cancel" severity="secondary" (click)="closeImportDialog()"></button>
+      <button
+        pButton
+        label="Import"
+        [disabled]="!pendingImport || importErrors.length > 0"
+        (click)="confirmImport()"
+      ></button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  [header]="creationTitle"
+  [(visible)]="creationDialogVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  (onHide)="closeCreationDialog()"
+>
+  <div class="flex flex-col gap-3">
+    <span class="text-xs uppercase tracking-widest text-slate-400">
+      {{
+        creationContext?.type === 'collection'
+          ? 'Collection Name'
+          : creationContext?.type === 'folder'
+            ? 'Folder Name'
+            : 'Request Name'
+      }}
+    </span>
+    <input
+      pInputText
+      [(ngModel)]="creationModel.name"
+      placeholder="Enter name"
+      class="w-full"
+    />
+    @if (creationContext?.type === 'request') {
+    <div class="flex flex-col gap-2">
+      <span class="text-xs uppercase tracking-widest text-slate-400">
+        Request Method
+      </span>
+      <p-select
+        [options]="methodOptions"
+        [(ngModel)]="creationModel.method"
+        optionLabel="label"
+        optionValue="value"
+        class="w-full"
+      ></p-select>
+    </div>
+    }
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-2">
+      <button
+        pButton
+        label="Cancel"
+        severity="secondary"
+        (click)="closeCreationDialog()"
+      ></button>
+      <button
+        pButton
+        label="Create"
+        [disabled]="creationDisabled"
+        (click)="submitCreation()"
+      ></button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>

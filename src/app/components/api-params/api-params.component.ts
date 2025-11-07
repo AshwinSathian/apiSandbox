@@ -6,6 +6,7 @@ import {
 } from "@angular/common/http";
 import {
   Component,
+  DoCheck,
   EventEmitter,
   OnInit,
   Output,
@@ -15,6 +16,7 @@ import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { AccordionModule } from "primeng/accordion";
 import { ButtonModule } from "primeng/button";
 import { CardModule } from "primeng/card";
+import { ChipModule } from "primeng/chip";
 import { FloatLabelModule } from "primeng/floatlabel";
 import { InputTextModule } from "primeng/inputtext";
 import { ProgressSpinnerModule } from "primeng/progressspinner";
@@ -23,6 +25,7 @@ import { SelectButtonModule } from "primeng/selectbutton";
 import { SkeletonModule } from "primeng/skeleton";
 import { TabsModule } from "primeng/tabs";
 import { MainService } from "src/app/services/main.service";
+import { EnvironmentsService } from "src/app/services/environments.service";
 import { IdbService } from "../../data/idb.service";
 import { PastRequest } from "../../models/history.models";
 import { JsonEditorComponent } from "../json-editor/json-editor.component";
@@ -35,6 +38,10 @@ import {
   ResponseInspectorService,
   ResponseInspection,
 } from "../../shared/inspect/response-inspector.service";
+import {
+  VariableToken,
+  collectVariableTokens,
+} from "../../shared/environments/env-resolution.util";
 
 type EditorMode = "basic" | "json";
 type ContextType = "Body" | "Headers";
@@ -56,13 +63,14 @@ type ContextType = "Body" | "Headers";
     TabsModule,
     FloatLabelModule,
     SkeletonModule,
+    ChipModule,
     JsonEditorComponent,
     ApiParamsBasicComponent,
     ResponseViewerComponent,
   ],
   templateUrl: "./api-params.component.html",
 })
-export class ApiParamsComponent implements OnInit {
+export class ApiParamsComponent implements OnInit, DoCheck {
   @Output() newRequest = new EventEmitter();
 
   endpoint: string;
@@ -112,11 +120,16 @@ export class ApiParamsComponent implements OnInit {
   loadingState: boolean;
   activeTab: string;
   mobileActivePanels: string[];
+  requestVariables: Record<string, string>;
+  variableTokens: VariableToken[];
+  highlightedVariableSource: VariableToken["source"] | null = null;
+  private previewFingerprint = "";
 
   constructor(
     private _mainService: MainService,
     private _idbService: IdbService,
-    private _responseInspector: ResponseInspectorService
+    private _responseInspector: ResponseInspectorService,
+    private readonly environmentsService: EnvironmentsService
   ) {
     this.endpoint = "";
     this.selectedRequestMethod = "GET";
@@ -167,6 +180,8 @@ export class ApiParamsComponent implements OnInit {
     this.responseTab = "body";
     this.responseInspection = this._responseInspector.latest;
     this.responseExportContext = null;
+    this.requestVariables = {};
+    this.variableTokens = [];
     this.addItemFn = (ctx: ContextType) => this.addItem(ctx);
     this.removeItemFn = (index: number, ctx: ContextType) =>
       this.removeItem(index, ctx);
@@ -180,6 +195,10 @@ export class ApiParamsComponent implements OnInit {
   }
 
   ngOnInit() {}
+
+  ngDoCheck(): void {
+    this.maybeUpdateVariablePreview();
+  }
 
   addItem(ctx: ContextType) {
     let context;
@@ -328,6 +347,27 @@ export class ApiParamsComponent implements OnInit {
           this.resetForm();
         },
       });
+  }
+
+  getVariableChipClass(token: VariableToken): string {
+    const base =
+      token.source === "request"
+        ? "bg-sky-900/40 text-sky-100 border border-sky-700/40"
+        : token.source === "environment"
+          ? "bg-emerald-900/30 text-emerald-100 border border-emerald-700/40"
+          : token.source === "global"
+            ? "bg-indigo-900/30 text-indigo-100 border border-indigo-700/40"
+            : "bg-amber-900/30 text-amber-100 border border-amber-600/40";
+    const highlight =
+      this.highlightedVariableSource && this.highlightedVariableSource === token.source
+        ? " ring-2 ring-offset-2 ring-white/60"
+        : "";
+    return base + highlight;
+  }
+
+  toggleVariableHighlight(source: VariableToken["source"]): void {
+    this.highlightedVariableSource =
+      this.highlightedVariableSource === source ? null : source;
   }
 
   private resetResponseState(): void {
@@ -518,6 +558,31 @@ export class ApiParamsComponent implements OnInit {
     const urlRegExp =
       /^(https?:\/\/)?[a-z0-9]+([\-\.][a-z0-9]+)*\.[a-z]{2,5}(:\d{1,5})?(\/.*)?$/i;
     return urlRegExp.test(text);
+  }
+
+  private maybeUpdateVariablePreview(): void {
+    const fingerprint = JSON.stringify({
+      endpoint: this.endpoint,
+      headers: this.requestHeaders,
+      body: this.requestBody,
+      env: this.environmentsService.activeEnvironment()?.meta.id ?? null,
+    });
+    if (fingerprint === this.previewFingerprint) {
+      return;
+    }
+    this.previewFingerprint = fingerprint;
+    this.variableTokens = collectVariableTokens(
+      {
+        url: this.endpoint,
+        headers: this.requestHeaders,
+        body: this.requestBody,
+      },
+      {
+        requestVars: this.requestVariables,
+        environment: this.environmentsService.activeEnvironment(),
+        globals: {},
+      }
+    );
   }
 
   private extractError(error: HttpErrorResponse): string {

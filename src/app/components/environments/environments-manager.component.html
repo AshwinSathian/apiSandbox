@@ -1,0 +1,291 @@
+<div class="env-manager grid gap-4 lg:grid-cols-[280px_1fr]">
+  <div class="rounded-xl border border-slate-800/70 bg-slate-900/50 p-4">
+    <div class="mb-4 flex items-center justify-between gap-2">
+      <p class="text-xs uppercase tracking-widest text-slate-400">Environments</p>
+      <div class="flex items-center gap-2">
+        <button
+          pButton
+          icon="pi pi-upload"
+          size="small"
+          text
+          severity="secondary"
+          (click)="envImportInput.click()"
+        ></button>
+        <button
+          pButton
+          icon="pi pi-download"
+          size="small"
+          text
+          severity="secondary"
+          (click)="exportEnvironments()"
+        ></button>
+        <button
+          pButton
+          size="small"
+          icon="pi pi-plus"
+          severity="secondary"
+        (click)="openNewEnvironmentDialog()"
+      ></button>
+    </div>
+    </div>
+    <input
+      #envImportInput
+      type="file"
+      accept="application/json"
+      class="hidden"
+      (change)="handleEnvironmentImport($event)"
+    />
+    <div class="space-y-2">
+      @for (env of environments(); track env.meta.id) {
+      <button
+        type="button"
+        class="env-item"
+        [ngClass]="{
+          active: selectedId() === env.meta.id,
+          current: activeEnvironment()?.meta.id === env.meta.id
+        }"
+        (click)="selectEnvironment(env.meta.id)"
+      >
+        <div class="flex flex-col items-start">
+          <span class="text-sm font-semibold text-white">{{ env.name }}</span>
+          @if (activeEnvironment()?.meta.id === env.meta.id) {
+          <span class="text-xs text-emerald-400">Active</span>
+          }
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            pButton
+            icon="pi pi-check"
+            severity="success"
+            size="small"
+            [disabled]="activeEnvironment()?.meta.id === env.meta.id"
+            (click)="setActive(env); $event.stopPropagation()"
+            pTooltip="Set Active"
+            tooltipPosition="top"
+          ></button>
+          <button
+            pButton
+            icon="pi pi-copy"
+            size="small"
+            text
+            (click)="duplicate(env); $event.stopPropagation()"
+          ></button>
+          <button
+            pButton
+            icon="pi pi-trash"
+            size="small"
+            text
+            severity="danger"
+            (click)="remove(env); $event.stopPropagation()"
+          ></button>
+        </div>
+      </button>
+      }
+    </div>
+  </div>
+
+  <div
+    class="rounded-xl border border-slate-800/70 bg-slate-900/50 p-6"
+    *ngIf="draft() as form; else emptyState"
+  >
+    <div class="grid gap-4 md:grid-cols-2">
+      <div>
+        <label class="form-label">Name</label>
+        <input
+          pInputText
+          class="w-full"
+          [(ngModel)]="form.name"
+          (ngModelChange)="syncDraft(form)"
+        />
+      </div>
+      <div>
+        <label class="form-label">Description</label>
+        <input
+          pInputText
+          class="w-full"
+          [(ngModel)]="form.description"
+          (ngModelChange)="syncDraft(form)"
+        />
+      </div>
+    </div>
+
+    <div class="mt-6">
+      <p-tabs [value]="editorTab()" (valueChange)="editorTab.set($event)">
+        <p-tablist>
+          <p-tab value="pairs">Key/Value</p-tab>
+          <p-tab value="json">JSON</p-tab>
+        </p-tablist>
+        <p-tabpanels>
+          <p-tabpanel value="pairs">
+            <div class="flex flex-col gap-3">
+              @for (item of form.vars; track $index) {
+              <div class="grid grid-cols-[1fr_1fr_auto_auto] items-center gap-2">
+                <input
+                  pInputText
+                  placeholder="KEY"
+                  [(ngModel)]="form.vars[$index].key"
+                  (ngModelChange)="onPairsChange()"
+                />
+                @if (!isSecretValue(form.vars[$index].value)) {
+                <input
+                  pInputText
+                  placeholder="Value"
+                  [(ngModel)]="form.vars[$index].value"
+                  (ngModelChange)="onPairsChange()"
+                />
+                } @else {
+                <div class="rounded-lg border border-amber-500/40 bg-amber-900/20 px-3 py-2 text-xs text-amber-200">
+                  <div>Secret stored</div>
+                  <div class="mt-1 text-[10px] text-amber-100/80">
+                    @if (!secretsUnlocked) {
+                    Unlock to reveal
+                    } @else if (getSecretPreview(form.vars[$index].value)) {
+                    {{ getSecretPreview(form.vars[$index].value) }}
+                    } @else {
+                    <button
+                      type="button"
+                      class="underline"
+                      (click)="revealSecret($index)"
+                    >
+                      Reveal
+                    </button>
+                    }
+                  </div>
+                </div>
+                }
+                <button
+                  pButton
+                  icon="pi pi-lock"
+                  text
+                  severity="secondary"
+                  [disabled]="isSecretValue(form.vars[$index].value)"
+                  (click)="protectVariable($index)"
+                ></button>
+                <button
+                  pButton
+                  icon="pi pi-times"
+                  text
+                  severity="secondary"
+                  (click)="removeVariable($index)"
+                ></button>
+              </div>
+              }
+              <button
+                pButton
+                icon="pi pi-plus"
+                size="small"
+                label="Add Variable"
+                severity="secondary"
+                (click)="addVariable()"
+              ></button>
+            </div>
+          </p-tabpanel>
+          <p-tabpanel value="json">
+            <div class="space-y-2">
+              @if (!form.jsonValid) {
+              <p class="text-sm text-red-400">Invalid JSON</p>
+              }
+              <app-json-editor
+                name="env-json"
+                [(ngModel)]="form.jsonText"
+                (jsonValidChange)="form.jsonValid = $event"
+                (parsedChange)="onJsonChange(form.jsonText, form.jsonValid, $event)"
+                [height]="240"
+              ></app-json-editor>
+            </div>
+          </p-tabpanel>
+        </p-tabpanels>
+      </p-tabs>
+    </div>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button
+        pButton
+        label="Save Changes"
+        class="uppercase"
+        [disabled]="!form.name || !form.jsonValid"
+        (click)="save()"
+      ></button>
+    </div>
+  </div>
+</div>
+
+<ng-template #emptyState>
+  <div class="rounded-xl border border-dashed border-slate-700 p-6 text-center text-slate-400">
+    Select or create an environment to begin editing.
+  </div>
+</ng-template>
+
+<p-dialog
+  header="New Environment"
+  [(visible)]="newEnvDialogVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  (onHide)="closeNewEnvironmentDialog()"
+>
+  <div class="flex flex-col gap-3">
+    <div>
+      <label class="form-label">Name</label>
+      <input
+        pInputText
+        class="w-full"
+        [(ngModel)]="newEnvForm.name"
+        placeholder="Environment name"
+      />
+    </div>
+    <div>
+      <label class="form-label">Description</label>
+      <input
+        pInputText
+        class="w-full"
+        [(ngModel)]="newEnvForm.description"
+        placeholder="Optional description"
+      />
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-2">
+      <button pButton label="Cancel" severity="secondary" (click)="closeNewEnvironmentDialog()"></button>
+      <button
+        pButton
+        label="Create"
+        [disabled]="!newEnvForm.name?.trim()"
+        (click)="submitNewEnvironment()"
+      ></button>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Import Environments"
+  [(visible)]="envImportDialogVisible"
+  [modal]="true"
+  [style]="{ width: '420px' }"
+  (onHide)="closeEnvImportDialog()"
+>
+  @if (envImportErrors.length) {
+  <div class="space-y-1 text-sm text-red-300">
+    <p class="font-semibold">Unable to import "{{ envImportFileName }}":</p>
+    @for (error of envImportErrors; track error) {
+    <p>- {{ error }}</p>
+    }
+  </div>
+  } @else if (pendingEnvImport?.length) {
+  <div class="text-sm text-slate-300">
+    <p class="font-semibold text-white">{{ pendingEnvImport.length }} environment(s) detected.</p>
+  </div>
+  } @else {
+  <p class="text-sm text-slate-300">Select a valid export file to continue.</p>
+  }
+  <ng-template pTemplate="footer">
+    <div class="flex justify-end gap-2">
+      <button pButton label="Cancel" severity="secondary" (click)="closeEnvImportDialog()"></button>
+      <button
+        pButton
+        label="Import"
+        [disabled]="!pendingEnvImport || envImportErrors.length > 0"
+        (click)="confirmEnvironmentImport()"
+      ></button>
+    </div>
+  </ng-template>
+</p-dialog>

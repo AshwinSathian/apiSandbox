@@ -1,0 +1,62 @@
+import { Injectable } from "@angular/core";
+import { IdbService } from "../data/idb.service";
+import { SecretEnvelope, SecretId } from "../models/secrets.models";
+import { SecretCryptoService } from "../shared/secrets/secret-crypto.service";
+
+export interface SaveSecretRequest {
+  name: string;
+  environmentId?: string;
+  plaintext: string;
+}
+
+@Injectable({
+  providedIn: "root",
+})
+export class SecretsService {
+  constructor(
+    private readonly idb: IdbService,
+    private readonly crypto: SecretCryptoService
+  ) {}
+
+  async saveSecret(request: SaveSecretRequest): Promise<SecretId> {
+    if (!this.crypto.isUnlocked) {
+      throw new Error("Secrets are locked. Unlock before saving new secrets.");
+    }
+    const envelope = await this.crypto.encryptWithSession(request.plaintext);
+    const id = this.randomId();
+    await this.idb.writeCipher({
+      id,
+      name: request.name,
+      environmentId: request.environmentId,
+      envelope,
+    });
+    return id;
+  }
+
+  async readSecret(secretId: SecretId): Promise<string | null> {
+    if (!this.crypto.isUnlocked) {
+      return null;
+    }
+    const envelope = await this.idb.readCipher(secretId);
+    if (!envelope) {
+      return null;
+    }
+    return this.crypto.decryptWithSession(envelope);
+  }
+
+  async decryptEnvelope(
+    envelope: SecretEnvelope
+  ): Promise<string | null> {
+    if (!this.crypto.isUnlocked) {
+      return null;
+    }
+    return this.crypto.decryptWithSession(envelope);
+  }
+
+  private randomId(): SecretId {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+    return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2, 10)}`;
+  }
+}
