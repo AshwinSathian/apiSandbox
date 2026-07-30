@@ -1,8 +1,9 @@
 # Wayfarer
 
 [![CI](https://github.com/AshwinSathian/wayfarer/actions/workflows/ci.yml/badge.svg)](https://github.com/AshwinSathian/wayfarer/actions/workflows/ci.yml)
+[![Deploy](https://github.com/AshwinSathian/wayfarer/actions/workflows/deploy.yml/badge.svg)](https://github.com/AshwinSathian/wayfarer/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Coverage](https://img.shields.io/badge/coverage-not%20yet%20measured-lightgrey.svg)](CONTRIBUTING.md)
+[![GitHub stars](https://img.shields.io/github/stars/AshwinSathian/wayfarer?style=flat&color=yellow)](https://github.com/AshwinSathian/wayfarer/stargazers)
 
 **The API client that can't rug-pull you.**
 
