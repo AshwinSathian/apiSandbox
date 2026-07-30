@@ -1,8 +1,8 @@
 # Deployment
 
 Wayfarer is a static Angular build served by [Cloudflare Workers with static
-assets](https://developers.cloudflare.com/workers/static-assets/) — Cloudflare's
-currently-recommended path for static sites, and the successor to the older
+assets](https://developers.cloudflare.com/workers/static-assets/), Cloudflare's
+currently-recommended path for static sites and the successor to the older
 Pages product (same edge network, same free tier, unified with the rest of
 the Workers toolchain). Configuration lives in [`wrangler.jsonc`](../wrangler.jsonc).
 
@@ -13,13 +13,13 @@ the Workers toolchain). Configuration lives in [`wrangler.jsonc`](../wrangler.js
 - **`.github/workflows/deploy.yml`** deploys to production whenever the `CI`
   workflow finishes successfully on `main` (lint, unit tests, production
   build, Local Bridge suite, and the Playwright e2e suite all have to pass
-  first — this workflow doesn't re-run or duplicate those checks, it just
+  first; this workflow doesn't re-run or duplicate those checks, it just
   gates on their conclusion for that exact commit).
 - **`.github/workflows/preview.yml`** uploads a Cloudflare
   [Worker Version](https://developers.cloudflare.com/workers/configuration/versions-and-deployments/)
   for every PR and comments the preview URL on it. The preview is a fully
-  working build of that PR's code, reachable at its own `*.workers.dev` URL —
-  it just never receives traffic on the custom domain, so production is
+  working build of that PR's code, reachable at its own `*.workers.dev` URL.
+  It just never receives traffic on the custom domain, so production is
   unaffected until the PR merges and `deploy.yml` runs.
 
 Both workflows need two repository secrets (Settings → Secrets and
@@ -40,7 +40,7 @@ npx wrangler deploy
 Requires Node 22+ (`wrangler` itself refuses to run on older Node) and
 `wrangler login` against the target Cloudflare account. `wrangler.jsonc`'s
 `assets.not_found_handling: "single-page-application"` handles Angular's
-client-side routing — any unmatched path falls back to `index.html` rather
+client-side routing: any unmatched path falls back to `index.html` rather
 than 404ing.
 
 ## Headers & CSP
@@ -50,7 +50,7 @@ every response and defines the production Content-Security-Policy,
 `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`. It is
 **not** applied when serving the same build output locally via a plain static
 file server (e.g. the `python3 -m http.server` command `playwright.config.ts`
-uses for CI) — that's a Cloudflare-specific processing step, so header/CSP
+uses for CI). That's a Cloudflare-specific processing step, so header/CSP
 behavior can only be verified against an actual deployment, not the local e2e
 run.
 
@@ -59,7 +59,7 @@ run.
 Cloudflare Web Analytics' automatic-injection beacon
 (`static.cloudflareinsights.com/beacon.min.js`), if enabled anywhere on the
 `ashwinsathian.com` zone, gets blocked by this app's own `script-src 'self'`
-CSP — this is expected and desired (see the "no telemetry" promise in the
+CSP. This is expected and desired (see the "no telemetry" promise in the
 [README](../README.md) and [Trust Center](trust-center.md)), but it does mean
 a blocked-by-CSP console error is visible on every page load if zone-wide Web
 Analytics is on. Scoping or disabling that zone setting for this hostname

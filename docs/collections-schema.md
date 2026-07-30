@@ -51,7 +51,7 @@ Wayfarer stores collection data entirely in IndexedDB. Each document carries a d
 }
 ```
 
-The export payload never injects runtime state—no random IDs, timestamps remain unchanged, and arrays stay sorted. This allows:
+The export payload never injects runtime state: no random IDs, timestamps remain unchanged, and arrays stay sorted. This allows:
 
 * deterministic hashing for backups,
 * low‑noise git diffs, and

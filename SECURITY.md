@@ -8,19 +8,19 @@ environments, history, secrets) lives in the browser via IndexedDB. Because
 of that shape, the risk surface that matters here is different from a typical
 server-backed product. The things we care most about are:
 
-- **Cross-site scripting (XSS)** — anything that lets attacker-controlled
+- **Cross-site scripting (XSS)**: anything that lets attacker-controlled
   content execute in the app's origin.
-- **Script-sandbox escape** — the pre/post-request scripting feature runs
+- **Script-sandbox escape**: the pre/post-request scripting feature runs
   user- and collection-supplied JavaScript. A vulnerability that lets a
   script escape its sandbox and reach the page, the DOM, cookies, or the
   network is treated as critical, since it can be reached simply by
   importing a shared collection.
-- **Secrets-at-rest weaknesses** — anything that weakens the encryption,
+- **Secrets-at-rest weaknesses**: anything that weakens the encryption,
   key handling, or storage of the local secrets vault (see
   [`docs/secrets.md`](docs/secrets.md)).
 
 "Server compromise," account takeover, and similar are **not** applicable
-threat models here — there is no server and no account.
+threat models here: there is no server and no account.
 
 For the full data-residency, encryption, and compliance picture (including
 what's *not* true yet, stated plainly), see the [Trust Center](docs/trust-center.md)
@@ -34,10 +34,10 @@ Automated scanners can discover this policy via
 
 Instead, report privately using one of:
 
-1. **GitHub Private Security Advisory** — use the "Report a vulnerability"
+1. **GitHub Private Security Advisory**: use the "Report a vulnerability"
    button under this repository's Security tab
    (`https://github.com/AshwinSathian/wayfarer/security/advisories/new`).
-2. **Email** — send details to **ashwinsathyan19@gmail.com**.
+2. **Email**: send details to **ashwinsathyan19@gmail.com**.
 
 Please include, where possible:
 

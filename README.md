@@ -7,7 +7,7 @@
 
 **The API client that can't rug-pull you.**
 
-Wayfarer is a local-first API client. No account. No cloud. No telemetry. Everything — requests, collections, secrets — lives in your browser, encrypted at rest, exportable any time. When you outgrow solo use, sync and team features will be opt-in and self-hostable, never a requirement.
+Wayfarer is a local-first API client. No account. No cloud. No telemetry. Everything (requests, collections, secrets) lives in your browser, encrypted at rest, exportable any time. When you outgrow solo use, sync and team features will be opt-in and self-hostable, never a requirement.
 
 **Live demo:** https://wayfarer.ashwinsathian.com/
 
@@ -15,12 +15,12 @@ Wayfarer is a local-first API client. No account. No cloud. No telemetry. Everyt
 
 ## Why Wayfarer?
 
-- **You can't be locked out of your own work.** Everything you build lives on your device by construction, not by policy — there's no update, acquisition, or pricing page that can gate access to data you already own.
-- **Zero clutter, just the essentials.** Compose a request and see a clean, structured response.
-- **Great defaults.** Sensible method/body pairing, helpful validation, and safe fallbacks.
-- **Shareable results.** Export a request/response as **HAR 1.2** for teammates and tooling.
-- **No cloud, no account, no telemetry.** Collections, environments, history, and secrets all live **per‑browser, per‑device** in **IndexedDB (IDB)** — nothing is ever uploaded.
-- **Dark‑first UI**, with a fully designed light theme. Minimal, accessible, and keyboard‑friendly.
+- You can't be locked out of your own work. Everything you build lives on your device by construction, not by policy: there's no update, acquisition, or pricing page that can gate access to data you already own.
+- Zero clutter, just the essentials. Compose a request and see a clean, structured response.
+- Great defaults: sensible method/body pairing, helpful validation, and safe fallbacks.
+- Shareable results. Export a request/response as **HAR 1.2** for teammates and tooling.
+- No cloud, no account, no telemetry. Collections, environments, history, and secrets all live **per‑browser, per‑device** in **IndexedDB (IDB)**, and nothing is ever uploaded.
+- Dark‑first UI, with a fully designed light theme. Minimal, accessible, and keyboard‑friendly.
 
 ---
 
@@ -37,7 +37,7 @@ Wayfarer is a local-first API client. No account. No cloud. No telemetry. Everyt
 - **Pre/Post-Request Scripts & Test Assertions**
 
   - Monaco-backed script editor with a `pm.environment` / `pm.response` / `pm.test` / `pm.expect` API for dynamic auth, request chaining, and response validation
-  - Scripts run sandboxed in an isolated Web Worker with no access to the page, DOM, cookies, or network — see [`docs/scripts.md`](docs/scripts.md) for the full, verified isolation model
+  - Scripts run sandboxed in an isolated Web Worker with no access to the page, DOM, cookies, or network; see [`docs/scripts.md`](docs/scripts.md) for the full, verified isolation model
   - A visual, no-code test assertion builder (10 operators across status/body/headers/duration) as a friendlier alternative to scripting
   - Results surface in a dedicated **Tests** tab in the response viewer
 
@@ -56,7 +56,7 @@ Wayfarer is a local-first API client. No account. No cloud. No telemetry. Everyt
 - **Secrets Vault**
 
   - Client-side, encrypted-at-rest secrets: PBKDF2 (200k iterations, SHA‑256) key derivation + AES‑GCM‑256, ciphertext-only in IndexedDB, key held in memory only
-  - Guided first-use passphrase setup flow — see [`docs/secrets.md`](docs/secrets.md)
+  - Guided first-use passphrase setup flow; see [`docs/secrets.md`](docs/secrets.md)
   - A dedicated **Secrets management view** listing every secret across every environment in one place, with lock-aware reveal, rename, delete, and a "locate" chip that jumps to wherever a secret is referenced
 
 - **History & Navigation**
@@ -101,7 +101,7 @@ npm run start
 # falls back to: ng serve --open
 # then open http://localhost:4200
 
-# 4) Production build (optimized, hashed — the same build CI runs)
+# 4) Production build (optimized, hashed; the same build CI runs)
 npm run build
 
 # 5) Lint / test
@@ -132,10 +132,10 @@ npm run test:ci
 
 ## Privacy & Data
 
-- Everything — requests, history, collections, environments, and secrets — is stored **locally** in your browser via **IndexedDB (IDB)**.
+- Everything (requests, history, collections, environments, and secrets) is stored **locally** in your browser via **IndexedDB (IDB)**.
 - **Nothing is uploaded** to our servers; there is no backend and no account system.
 - You're in control: clear individual entries or wipe the entire history anytime.
-- Need a clean slate? Hit **Reset All** in the toolbar — it closes the IDB connection, deletes the local database, clears app-specific storage, and reloads the app.
+- Need a clean slate? Hit **Reset All** in the toolbar. It closes the IDB connection, deletes the local database, clears app-specific storage, and reloads the app.
 
 ---
 
@@ -151,19 +151,19 @@ It's widely accepted by browsers, proxies, and observability tools, and is great
 Current focus is JSON APIs. Form/file helpers may land later.
 
 **Will there be a light theme?**  
-Yes — dark and light themes both ship today, each intentionally designed.
+Yes, dark and light themes both ship today, each intentionally designed.
 
 **Are my secrets/API keys safe?**  
 Secrets are encrypted at rest with AES‑GCM‑256 and a PBKDF2‑derived key that only ever exists in memory. See [`docs/secrets.md`](docs/secrets.md) for the full model, and [`docs/scripts.md`](docs/scripts.md) for what scripts can and can't reach.
 
 **Wait, wasn't this called API Sandbox?**  
-Yes — this project was renamed from API Sandbox to Wayfarer. Same app, same storage model, same MIT license: only the name and identity changed, never the promise that your data stays on your device. See the [CHANGELOG](CHANGELOG.md) for details.
+Yes, this project was renamed from API Sandbox to Wayfarer. Same app, same storage model, same MIT license: only the name and identity changed, never the promise that your data stays on your device. See the [CHANGELOG](CHANGELOG.md) for details.
 
 ---
 
 ## Contributing
 
-Contributions are welcome — bug reports, small UX wins, docs tweaks, or focused features that keep the app fast and simple.
+Contributions are welcome: bug reports, small UX wins, docs tweaks, or focused features that keep the app fast and simple.
 
 - Read [CONTRIBUTING.md](CONTRIBUTING.md) for setup, branch/PR flow, and code style expectations.
 - This project follows the [Contributor Covenant](CODE_OF_CONDUCT.md).
@@ -178,9 +178,9 @@ Please open an issue to propose non-trivial changes before a PR, and keep scope 
 - [Storage layout](docs/storage.md)
 - [Scripts & sandbox model](docs/scripts.md)
 - [Local Bridge (optional CORS/intranet relay)](local-bridge/README.md)
-- [Trust Center](docs/trust-center.md) — encryption, data residency, subprocessors, compliance status
+- [Trust Center](docs/trust-center.md): encryption, data residency, subprocessors, compliance status
 - [Security questionnaire (pre-answered)](docs/security-questionnaire.md)
-- [Deployment](docs/deployment.md) — Cloudflare Workers setup, CI/CD, headers/CSP
+- [Deployment](docs/deployment.md): Cloudflare Workers setup, CI/CD, headers/CSP
 
 ---
 
@@ -198,4 +198,4 @@ See [`docs/plans/plan-product-roadmap.md`](docs/plans/plan-product-roadmap.md), 
 
 ## License
 
-MIT © Ashwin Sathian — see [LICENSE](LICENSE).
+MIT © Ashwin Sathian. See [LICENSE](LICENSE).

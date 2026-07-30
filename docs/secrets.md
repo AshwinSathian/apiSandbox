@@ -45,4 +45,4 @@ To rotate secrets:
 4. **Re‑encrypt** each sensitive value (Protect Variable → new ciphertext).
 5. Optionally delete stale secrets via the IndexedDB `secrets` store (future UI).
 
-At no point does the app send secrets to a backend—everything stays local to the browser profile.
+At no point does the app send secrets to a backend; everything stays local to the browser profile.
