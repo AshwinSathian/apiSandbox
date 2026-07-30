@@ -2,11 +2,11 @@ name: Preview Deploy
 
 # Uploads a Cloudflare Workers Version for every PR - it's built and given a
 # unique preview URL but never receives production traffic (production stays
-# pinned to the version deploy.yml promotes on master). This is the Workers
+# pinned to the version deploy.yml promotes on main). This is the Workers
 # equivalent of Cloudflare Pages' per-branch preview deployments.
 on:
   pull_request:
-    branches: [master]
+    branches: [main]
 
 concurrency:
   group: preview-${{ github.event.pull_request.number }}

@@ -11,7 +11,7 @@ the Workers toolchain). Configuration lives in [`wrangler.jsonc`](../wrangler.js
 ## How it ships
 
 - **`.github/workflows/deploy.yml`** deploys to production whenever the `CI`
-  workflow finishes successfully on `master` (lint, unit tests, production
+  workflow finishes successfully on `main` (lint, unit tests, production
   build, Local Bridge suite, and the Playwright e2e suite all have to pass
   first — this workflow doesn't re-run or duplicate those checks, it just
   gates on their conclusion for that exact commit).

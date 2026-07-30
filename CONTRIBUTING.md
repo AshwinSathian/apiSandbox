@@ -45,13 +45,13 @@ Requires **Node 20+** and a modern browser.
 ## Branch & PR Flow
 
 1. Fork the repo (or create a branch directly if you have write access).
-2. Create a topic branch off `master`: `git checkout -b fix/short-description`.
+2. Create a topic branch off `main`: `git checkout -b fix/short-description`.
 3. Make focused changes — prefer several small, reviewable PRs over one large
    one. This matters especially for anything touching security-sensitive code
    (the script sandbox, the secrets vault) or mechanical/codemod-style diffs.
 4. Make sure the app builds, tests pass, and lint is clean locally before
    opening a PR (see commands above).
-5. Open a PR against `master` using the PR template. Fill in the summary, type
+5. Open a PR against `main` using the PR template. Fill in the summary, type
    of change, and test plan — screenshots/recordings are appreciated for any
    UI change.
 6. Keep the PR scope tight. For anything beyond a small fix or docs tweak,
