@@ -192,7 +192,7 @@ Please open an issue to propose non-trivial changes before a PR, and keep scope 
 - CSV/XLSX preview & import flows
 - WebSocket / SSE / GraphQL support
 
-See [`docs/plans/plan-product-roadmap.md`](docs/plans/plan-product-roadmap.md), the Phase 4 backlog in [`docs/plans/plan-specimen-modernization.md`](docs/plans/plan-specimen-modernization.md), and the rebrand/enterprise roadmap in [`docs/plans/plan-rebrand-enterprise-strategy.md`](docs/plans/plan-rebrand-enterprise-strategy.md) for the full, ranked list.
+Tracked as GitHub issues; no fixed timeline.
 
 ---
 

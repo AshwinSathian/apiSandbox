@@ -7,9 +7,7 @@ runtime dependencies, and stays off unless you explicitly start it.
 
 This exists because of a browser platform constraint, not an engineering
 gap: browsers cannot bypass CORS by policy, and Wayfarer is (deliberately)
-not an Electron app that could sidestep that sandbox. See
-[`docs/plans/plan-rebrand-enterprise-strategy.md`](../docs/plans/plan-rebrand-enterprise-strategy.md)
-Part E2 for the full reasoning.
+not an Electron app that could sidestep that sandbox.
 
 ## When you need this
 

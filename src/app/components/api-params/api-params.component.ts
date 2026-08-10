@@ -133,8 +133,7 @@ type ContextType = "Body" | "Headers";
 // splitting it further (e.g. moving the signals themselves into a service)
 // would mean the "current source of truth for what's in the composer"
 // stops living on the composer component, which costs more in indirection
-// than it saves in line count. See docs/plans/plan-specimen-modernization.md
-// Part G for the rest of the file-size audit.
+// than it saves in line count.
 export class ApiParamsComponent {
   private readonly idbService = inject(IdbService);
   private readonly responseInspector = inject(ResponseInspectorService);

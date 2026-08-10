@@ -23,13 +23,12 @@ import { SecretsRepository } from "./secrets.repository";
  * Public facade over the IndexedDB persistence layer. Every existing
  * consumer (AppComponent, CollectionsService, EnvironmentsService,
  * SecretsService, ApiParamsComponent, AppShellComponent) keeps injecting
- * this exact class with this exact API — the actual storage/schema/
+ * this exact class with this exact API. The actual storage/schema/
  * migration logic and each aggregate's CRUD now live in IdbCoreService and
  * the *.repository.ts files (collections/folders/requests were originally
  * one CollectionsRepository; split into three once that file crossed ~540
- * lines), independently testable without going through this facade. See
- * docs/plans/plan-specimen-modernization.md Part B2 for why this used to be
- * a single 1,300+ line god object.
+ * lines), independently testable without going through this facade. This
+ * facade used to be a single 1,300+ line god object.
  */
 @Injectable({
   providedIn: "root",

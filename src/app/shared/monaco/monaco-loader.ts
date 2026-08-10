@@ -151,11 +151,10 @@ export function monacoThemeName(theme: "dark" | "light"): string {
  * Resolves once `host` has a non-zero rendered width, resolving immediately
  * if it already does.
  *
- * Guards against a real failure mode (Part D of
- * docs/plans/plan-specimen-modernization.md): `@defer (on viewport)`
+ * Guards against a real failure mode: `@defer (on viewport)`
  * triggers Monaco's mount as soon as its placeholder intersects the
  * viewport, which can happen while the host is still laid out at (or
- * transitioning through) zero width — e.g. a container mid-flex-basis
+ * transitioning through) zero width, e.g. a container mid-flex-basis
  * animation, or a tab/accordion panel whose CSS visibility just flipped but
  * hasn't been laid out yet. Monaco computes its internal layout once at
  * construction time from the host's `getBoundingClientRect()`; if that's

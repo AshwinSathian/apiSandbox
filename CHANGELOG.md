@@ -10,32 +10,28 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
 ### Added
 
 - **Domain cutover + CI/CD**: deployed to Cloudflare (Workers with static
-  assets — the currently-recommended path over the legacy Pages product,
-  same CDN/edge) at `wayfarer.ashwinsathian.com`, per
-  `docs/plans/plan-rebrand-enterprise-strategy.md` Part D5/R2. `.github/workflows/deploy.yml`
+  assets, the currently-recommended path over the legacy Pages product,
+  same CDN/edge) at `wayfarer.ashwinsathian.com`. `.github/workflows/deploy.yml`
   now auto-deploys to production on every push to `master` that CI passes
   (gated on the `CI` workflow's own conclusion, not a duplicate check).
   `.github/workflows/preview.yml` uploads a Cloudflare Workers Version for
-  every PR — a real, working preview URL that never receives production
-  traffic — and comments it on the PR. `api-sandbox.ashwinsathian.com` was
+  every PR, a real, working preview URL that never receives production
+  traffic, and comments it on the PR. `api-sandbox.ashwinsathian.com` was
   never actually deployed (confirmed directly against the account before
   this change), so no redirect was needed from it.
 - A Trust Center (`docs/trust-center.md`) and a pre-answered procurement
   security questionnaire (`docs/security-questionnaire.md`), so a security
   reviewer can find the data-residency, encryption, subprocessor, and
-  compliance-status facts in one place instead of filing a ticket — per
-  `docs/plans/plan-rebrand-enterprise-strategy.md` Part F / Phase R3.
+  compliance-status facts in one place instead of filing a ticket.
 - `/.well-known/security.txt` (RFC 9116) for automated vulnerability-scanner
   discovery, linked from `SECURITY.md`.
 - **Local Bridge** (`local-bridge/`): an optional, zero-dependency companion
   process that relays requests to CORS-restrictive or intranet-only APIs a
-  browser tab structurally cannot reach — per
-  `docs/plans/plan-rebrand-enterprise-strategy.md` Part E2 / Phase R6. Binds
-  to `127.0.0.1` only, gates every relay call on both an Origin allowlist
-  and a persisted, constant-time-compared token. Run it with `npm run
-  bridge`; enable it from the new router icon in the app toolbar. See
-  `local-bridge/README.md` for the full security model and known
-  limitations.
+  browser tab structurally cannot reach. Binds to `127.0.0.1` only, gates
+  every relay call on both an Origin allowlist and a persisted,
+  constant-time-compared token. Run it with `npm run bridge`; enable it
+  from the new router icon in the app toolbar. See `local-bridge/README.md`
+  for the full security model and known limitations.
 - `BridgeService` and a Local Bridge settings dialog in the app shell for
   configuring and testing the connection to a running bridge instance.
   `MainService.sendRequest()` now routes through the bridge when enabled,
@@ -46,11 +42,11 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
 - **Save to Collection**: the request composer can now actually save its
   contents into a collection. Previously the only way to add a request to a
   collection was the sidebar's "New Request" prompt (name + method only,
-  empty URL), and there was no way to ever edit it again — `CollectionsService`/
+  empty URL), with no way to ever edit it again. `CollectionsService`/
   `CollectionsRepository`/`IdbService` gain a real `updateRequest()`, and the
   composer gets a **Save** action (icon button next to Send) that writes the
-  full current state — method, URL, headers, body, auth, pre/post-request
-  scripts, and tests — back to the bound request, plus a **Save to
+  full current state (method, URL, headers, body, auth, pre/post-request
+  scripts, and tests) back to the bound request, plus a **Save to
   Collection** dialog (name + collection + optional folder picker) for a
   request that isn't bound to one yet. Closes the gap between this and the
   README's existing "saved to a Collection for later reuse" claim, which
@@ -59,11 +55,11 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
   previously-inert mobile sidebar button, which only closed the drawer and
   didn't touch the composer at all) that clears the form and drops any
   collection-request binding.
-- Folder/collection icons in the collections tree — previously a folder and
+- Folder/collection icons in the collections tree. Previously a folder and
   a collection both rendered as plain, indistinguishable label text.
-- Six more command palette (⌘K) actions — New Request, Send Request, Focus
+- Six more command palette (⌘K) actions: New Request, Send Request, Focus
   Address Bar, toggle theme, open History, lock/unlock secrets, open Local
-  Bridge settings, Reset All Data — registered alongside the existing
+  Bridge settings, Reset All Data, registered alongside the existing
   collection/folder commands. The palette previously had exactly one
   command ("New Collection").
 - **A dedicated Secrets management view** (`SecretsManagerComponent`), a
@@ -80,7 +76,7 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
 - **A dedicated Settings surface** (`SettingsComponent`) consolidating the
   theme toggle, environments export/import, Reset All Data, Local Bridge
   settings, and a keyboard-shortcuts reference (a live list of every
-  registered command-palette action) — previously scattered across the
+  registered command-palette action), previously scattered across the
   toolbar and command palette with no single home. Registered in the
   command palette and a toolbar icon button.
 - **A resizable split between the request composer and the response
@@ -89,7 +85,7 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
   1024–1440px+. The chosen split ratio persists across reloads.
 - A `prefers-reduced-motion` convention (a CSS override plus a
   `prefersReducedMotion()` helper for the one Angular-animations-driven
-  surface a media query can't reach) — the app's first. Tab switches
+  surface a media query can't reach), the app's first. Tab switches
   (composer, response viewer, environments editor, mobile accordion),
   response arrival, and dialog open/close now animate deliberately using
   the existing spring-easing design tokens, respecting that setting.
@@ -98,12 +94,12 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
 
 - **Test runner migrated from Karma/Jasmine to Vitest**, running in real
   headless Chromium via Vitest's Playwright browser provider rather than
-  jsdom — jsdom doesn't faithfully implement the Web Workers/IndexedDB/
+  jsdom. jsdom doesn't faithfully implement the Web Workers/IndexedDB/
   WebCrypto APIs that `script-sandbox.service.spec.ts` (the sandbox-escape
   regression suite) and several other specs genuinely exercise. All 21 spec
   files ported; `karma.conf.js` and the Karma/Jasmine dependencies removed.
-- **Zoneless change detection adopted** (`provideZonelessChangeDetection()`)
-  — `zone.js` is now fully removed from the repo, dev and prod (confirmed
+- **Zoneless change detection adopted** (`provideZonelessChangeDetection()`).
+  `zone.js` is now fully removed from the repo, dev and prod (confirmed
   by a 0-byte `polyfills` chunk in the production build). Zoneless CD
   flushes signal writes to the DOM asynchronously rather than
   synchronously-post-event, which surfaced one real race in an existing e2e
@@ -114,7 +110,7 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
   `@ViewChild("editorHost")` setter-pattern queries (`json-editor`,
   `script-editor`) migrated to `viewChild()` + `effect()`.
 - Split the six most oversized files in the codebase into cohesive
-  services/components/utils behind their existing public APIs — no
+  services/components/utils behind their existing public APIs, so no
   consumer outside each split file needed to change. `api-params.component.ts`
   (1,174 → 868 lines: extracted `RequestSaveService`, `AuthEditorComponent`,
   and several `shared/http/*.util.ts` helpers), `collections-sidebar.component.ts`
@@ -134,26 +130,26 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
 
 - **Monaco's background language workers (JSON/CSS/HTML/TypeScript validation
   and completion) had never actually run in the deployed production build.**
-  They were loaded via `import("monaco-editor/.../*.worker?worker")` — a
+  They were loaded via `import("monaco-editor/.../*.worker?worker")`, a
   Vite-specific dynamic-import convention that happened to work under
   `ng serve` only because Angular's dev server is Vite-based. Angular's
   production builder (`ng build`, esbuild but not Vite) doesn't implement
   that convention at all: it silently imported each worker file as an
   ordinary module with no exports, so every worker constructor resolved to
-  `undefined`. Verified directly — a production build's worker imports were
-  `undefined` 5/5 times, the identical dev-mode code was a real constructor
-  5/5 times — and confirmed structurally by the production bundle finally
-  emitting genuine, separately-named `*-worker.js` chunks (`json-worker`,
-  `css-worker`, `html-worker`, `typescript-worker`, `editor-worker`) after
-  the fix, which it never had before. Found while chasing an unrelated CI
-  e2e flake (below) that only reproduced against a cold/production
-  environment, never a warm local dev server. Fixed by switching to
-  Angular's own `new Worker(new URL(...))` syntax — the same
+  `undefined`. Verified directly: a production build's worker imports were
+  `undefined` 5/5 times, and the identical dev-mode code was a real
+  constructor 5/5 times, confirmed structurally by the production bundle
+  finally emitting genuine, separately-named `*-worker.js` chunks
+  (`json-worker`, `css-worker`, `html-worker`, `typescript-worker`,
+  `editor-worker`) after the fix, which it never had before. Found while
+  chasing an unrelated CI e2e flake (below) that only reproduced against a
+  cold/production environment, never a warm local dev server. Fixed by
+  switching to Angular's own `new Worker(new URL(...))` syntax, the same
   builder-native mechanism `script-sandbox.service.ts`'s worker already
-  uses — via five thin wrapper files under
-  `src/app/shared/monaco/workers/` (one per worker; each just re-exports
-  monaco-editor's own worker script so the builder has a literal,
-  statically-analyzable entry point to bundle).
+  uses, via five thin wrapper files under `src/app/shared/monaco/workers/`
+  (one per worker; each just re-exports monaco-editor's own worker script
+  so the builder has a literal, statically-analyzable entry point to
+  bundle).
 - A PrimeNG `ConfirmDialog` accessibility bug, live in production the whole
   time: its "headless" custom-content mode (used here for the design
   system's warning-icon styling) always auto-generates an `aria-labelledby`
@@ -161,15 +157,15 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
   renders, leaving every open confirm dialog (clear history, reset all
   data, delete secret, etc.) with a permanently dangling accessible-name
   reference for screen reader users. An existing attempted fix
-  (`fixConfirmDialogAriaLabelledBy()`) was a silent no-op — its selector
+  (`fixConfirmDialogAriaLabelledBy()`) was a silent no-op: its selector
   (`[data-pc-name="dialog"]`) didn't match what this PrimeNG version
   actually renders (`data-pc-name="t"`). Corrected the selector to
   `.p-confirmdialog[role="alertdialog"]` (the class axe itself reports as
-  the violating node) and replaced a bare `setTimeout(fn)` — a Zone-era
-  "run after this render" idiom — with `afterNextRender()`, the correct
+  the violating node) and replaced a bare `setTimeout(fn)`, a Zone-era
+  "run after this render" idiom, with `afterNextRender()`, the correct
   zoneless-safe equivalent.
 - CI's e2e job now builds once and serves the static production output
-  (via Python's stdlib `http.server` — no new dependency) instead of
+  (via Python's stdlib `http.server`, no new dependency) instead of
   running `ng serve`, and three accessibility-spec timing assumptions that
   only held by coincidence under the slower dev server were hardened:
   waiting for a genuinely-open `pTooltip` to close (Playwright's `click()`
@@ -182,17 +178,17 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
   for the pre-existing one. None of this was reproducible before switching
   off the dev server, which is exactly why it had never been caught.
 - **A successful Send no longer wipes the entire composer.** `sendRequest()`
-  called `resetForm()` unconditionally after every send — method, URL,
+  called `resetForm()` unconditionally after every send: method, URL,
   headers, body, and auth all vanished the instant a response arrived, with
   no way to tweak a header and resend, the single most basic workflow every
   API client supports. The composer now stays exactly as composed; the new
   explicit "New Request" action is the only thing that clears it.
 - Loading a saved collection request into the composer (double-click in the
   sidebar) silently dropped its auth config, pre/post-request scripts, and
-  tests — the tree only ever emitted a lossy history-shaped object carrying
+  tests. The tree only ever emitted a lossy history-shaped object carrying
   method/url/headers/body. It now emits the full `RequestDoc` and the
   composer's new `loadCollectionRequest()` restores everything.
-- The Send button's `styleClass="send-btn"` was silently a no-op — PrimeNG's
+- The Send button's `styleClass="send-btn"` was silently a no-op: PrimeNG's
   `pButton` *attribute* directive (as opposed to the `<p-button>`
   *component*) never exposed a `styleClass` input, so the button had been
   falling back to the theme's default primary-button color the whole time
@@ -200,7 +196,7 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
   which Angular merges onto the host element regardless of directive
   support. This surfaced a real, previously-masked WCAG AA violation: the
   default primary color (`#a5b4fc`) only has a 1.99:1 contrast ratio against
-  white button text (needs 4.5:1) — masked in the existing accessibility
+  white button text (needs 4.5:1), masked in the existing accessibility
   e2e test because the send-then-clear bug above used to disable the button
   (and thus exempt it from the contrast check) immediately after every send.
   `--gradient-accent`'s start stop is now a darker `#405DD0` (was `#4C6EF5`,
@@ -233,12 +229,11 @@ and this project intends to adhere to [Semantic Versioning](https://semver.org/s
 ## [1.0.0] - 2026-07-21
 
 **This project has been renamed from "API Sandbox" to "Wayfarer."** Same app,
-same local-first storage model, same MIT license — only the name and visual
+same local-first storage model, same MIT license: only the name and visual
 identity changed. We're saying this out loud rather than treating it as a
-cosmetic footnote: the whole point of this project is that nothing about how
+cosmetic footnote. The whole point of this project is that nothing about how
 your data is stored or who can gate access to it should ever change without
-you being told plainly. See `docs/plans/plan-rebrand-enterprise-strategy.md`
-for the full reasoning behind the rename.
+you being told plainly.
 
 ### Changed
 
@@ -247,8 +242,7 @@ for the full reasoning behind the rename.
   physical IndexedDB database name, and the collection/environment export
   schema `$id`s, are intentionally left unchanged (renaming them would force
   a lossy data migration or break already-exported files against a domain
-  that isn't live yet) — see `docs/storage.md` and the rebrand plan's
-  migration checklist for the full reasoning.
+  that isn't live yet); see `docs/storage.md` for the full reasoning.
 - Replaced the iOS System Blue accent (`#0A84FF`/`#007AFF`) with an ownable
   "Wayfarer Indigo" hue across both the dark and light themes, including the
   brand gradient, focus rings, and the GET method color that previously
@@ -269,20 +263,19 @@ for the full reasoning behind the rename.
   (Contributor Covenant v2.1), `SECURITY.md`, GitHub issue forms
   (`.github/ISSUE_TEMPLATE/bug_report.yml`, `feature_request.yml`, `config.yml`),
   `.github/PULL_REQUEST_TEMPLATE.md`, `.github/CODEOWNERS`, a CI workflow
-  (`.github/workflows/ci.yml` — lint, unit test, production build with
+  (`.github/workflows/ci.yml`: lint, unit test, production build with
   budget enforcement, plus the e2e job above), and `.github/dependabot.yml`
   (weekly npm + GitHub Actions updates).
 - `docs/scripts.md` documenting the real, verified `pm.*` scripting API
   surface and the current script-sandbox isolation model (including its
-  known limitation — see the Security section below).
+  known limitation; see the Security section below).
 - README badges (build status, license, coverage placeholder).
 
 ### Documentation
 
-- Reconciled `docs/plans/plan-product-roadmap.md`: removed the "destroy
-  this file" instruction, marked the shipped scripts/assertions rows as
-  done in its competitive gap table, and pointed remaining backlog items at
-  the Phase 4 section of `docs/plans/plan-specimen-modernization.md`.
+- Reconciled the product roadmap doc: removed the "destroy this file"
+  instruction and marked the shipped scripts/assertions rows as done in its
+  competitive gap table.
 - Rewrote `README.md` for the Wayfarer identity: removed stale NDJSON export
   claims (the feature was never shipped), brought the feature list current
   (scripts, assertions, history drawer, secrets vault, command palette), and
@@ -292,16 +285,15 @@ for the full reasoning behind the rename.
 
 - Pre/post-request scripts now execute inside a dedicated Web Worker
   (`script-runner.worker.ts`) instead of via `new Function()` on the main
-  thread — closing the sandbox-escape gap tracked in
-  `docs/plans/plan-specimen-modernization.md` (Part B3 / Phase 0), where a
-  script could re-acquire `fetch`/`document`/etc. as a language primitive
-  regardless of name-shadowing. The worker realm has no `window`,
-  `document`, cookies, `localStorage`, or main-thread memory access by
-  construction, and the worker additionally strips its own
-  network/storage-capable globals before evaluating any script. A regression
-  suite (`script-sandbox.service.spec.ts`) asserts the original escape
-  (`Function("return typeof fetch")()` re-acquisition) is closed. See
-  `docs/scripts.md` for the full, verified isolation model.
+  thread, closing a sandbox-escape gap where a script could re-acquire
+  `fetch`/`document`/etc. as a language primitive regardless of
+  name-shadowing. The worker realm has no `window`, `document`, cookies,
+  `localStorage`, or main-thread memory access by construction, and the
+  worker additionally strips its own network/storage-capable globals before
+  evaluating any script. A regression suite (`script-sandbox.service.spec.ts`)
+  asserts the original escape (`Function("return typeof fetch")()`
+  re-acquisition) is closed. See `docs/scripts.md` for the full, verified
+  isolation model.
 
 ## [0.1.0] - 2026-07-20
 
@@ -343,7 +335,7 @@ release yet.
 
 ### Removed
 
-- NDJSON export — removed from the app; the README previously described
+- NDJSON export, removed from the app. The README previously described
   it in three places after removal, which has since been corrected.
 
 ### Changed

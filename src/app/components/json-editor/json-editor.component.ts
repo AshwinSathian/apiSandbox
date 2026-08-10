@@ -50,10 +50,9 @@ const noop = () => {};
       trigger is IntersectionObserver-based, and a placeholder that's
       created and then torn down again before the observer gets a chance
       to report an intersection can leave the *next* (surviving) instance's
-      observer registration racing the browser's own callback scheduling —
-      confirmed via instrumented reproduction (see
-      docs/plans/plan-specimen-modernization.md Part D's "intermittent
-      render glitch" finding), not a hypothetical. "on timer(400ms)" is an
+      observer registration racing the browser's own callback scheduling,
+      confirmed via instrumented reproduction, not a hypothetical.
+      "on timer(400ms)" is an
       OR'd fallback trigger: whichever condition fires first wins, so the
       editor still loads immediately in the common case (element genuinely
       scrolls into view) but is structurally guaranteed to load shortly

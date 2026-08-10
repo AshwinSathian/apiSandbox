@@ -73,9 +73,7 @@ export interface PaletteAction {
 // dispatch, the command palette (registers its own + externally-supplied
 // actions and filters them), and the creation dialog - all genuinely
 // sidebar-owned interaction state, not extractable without just relocating
-// the same coupling elsewhere. See
-// docs/plans/plan-specimen-modernization.md Part G for the rest of the
-// file-size audit.
+// the same coupling elsewhere.
 export class CollectionsSidebarComponent implements OnInit {
   private readonly collectionsService = inject(CollectionsService);
   private readonly confirmationService = inject(ConfirmationService);

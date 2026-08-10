@@ -66,10 +66,8 @@ interface ResponseHeader {
 // left is the async JSON pretty-print/search pipeline (formatAndAssign/
 // prepareFormatting/onSearchQueryChange), which is inherently stateful -
 // it debounces against a Web Worker with token-based cancellation to avoid
-// a slow parse of a huge payload clobbering a newer, smaller one - plus the
-// signal-based response state itself. See
-// docs/plans/plan-specimen-modernization.md Part G for the rest of the
-// file-size audit.
+// a slow parse of a huge payload clobbering a newer, smaller one, plus the
+// signal-based response state itself.
 export class ResponseViewerComponent {
   private readonly jsonWorker = inject(JsonWorkerService);
 

@@ -1,8 +1,7 @@
 /**
  * Pure URL/query-param helpers for the request composer
  * (`ApiParamsComponent`). Extracted so the URL-validation logic that fixes
- * "an unparseable URL silently fetches the app's own index.html" (see
- * `docs/plans/plan-specimen-modernization.md` Part D bug #1) is unit
+ * "an unparseable URL silently fetches the app's own index.html" is unit
  * testable without an Angular TestBed, and so the composer component itself
  * isn't the only place this logic can be exercised from.
  */
